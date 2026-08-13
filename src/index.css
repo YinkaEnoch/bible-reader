@@ -574,11 +574,16 @@ html.dark .calendar-cell.selected, [data-paper="midnight"] .calendar-cell.select
   height: 5px;
   border-radius: 9999px;
   background-color: #ef4444;
+  box-shadow: 0 0 3px rgba(239, 68, 68, 0.4);
 }
 
-.calendar-cell.selected .reading-dot,
-.calendar-cell.selected .no-reading-dot {
+.calendar-cell.selected .reading-dot {
   background-color: #ffffff;
+}
+
+.calendar-cell.selected .no-reading-dot {
+  background-color: #ff6b6b;
+  box-shadow: 0 0 4px rgba(255, 107, 107, 0.8);
 }
 
 /* Selected Date Preview Card & Passage Cards */
