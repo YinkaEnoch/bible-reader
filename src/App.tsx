@@ -6,11 +6,10 @@ import { Navbar } from "./components/Navbar/Navbar";
 import { CalendarView } from "./components/Calendar/CalendarView";
 import { ReadingView } from "./components/ReadingView/ReadingView";
 import type { PaperTheme } from "./types";
-import { CheckCircle, Wifi, WifiOff } from "lucide-react";
 
 export function App() {
   const { theme, toggleTheme } = useTheme();
-  const { isOffline, installPrompt, triggerInstall, swRegistered } = usePWA();
+  const { isOffline, installPrompt, isInstalled, triggerInstall } = usePWA();
   const {
     bibleData,
     selectedDate,
@@ -24,22 +23,9 @@ export function App() {
     goToPrevDay,
   } = useReadings();
 
-  const [activeView, setActiveView] = useState<"calendar" | "reading">(
-    "calendar",
-  );
   const [paperTheme, setPaperTheme] = useState<PaperTheme>(() => {
     return theme === "dark" ? "midnight" : "parchment";
   });
-
-  const handleOpenReadingView = () => {
-    setActiveView("reading");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleBackToCalendar = () => {
-    setActiveView("calendar");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
 
   return (
     <div
@@ -58,36 +44,40 @@ export function App() {
         onToggleTheme={toggleTheme}
         isOffline={isOffline}
         installPrompt={installPrompt}
+        isInstalled={isInstalled}
         onInstall={triggerInstall}
       />
 
       {/* Main Viewport Container */}
       <main
         className="app-viewport"
-        style={{ paddingTop: "1.25rem", paddingBottom: "3.5rem" }}
+        style={{
+          paddingTop: "1.25rem",
+          paddingBottom: "3.5rem",
+          display: "flex",
+          flexDirection: "column",
+          gap: "1.5rem",
+        }}
       >
-        {activeView === "calendar" ? (
-          <CalendarView
-            currentMonth={currentMonth}
-            selectedDate={selectedDate}
-            readingsData={bibleData}
-            onSelectDate={(date) => selectDate(date)}
-            onPrevMonth={prevMonth}
-            onNextMonth={nextMonth}
-            onGoToToday={goToToday}
-            onOpenReadingView={handleOpenReadingView}
-          />
-        ) : (
-          <ReadingView
-            selectedDate={selectedDate}
-            passages={currentReadings}
-            paperTheme={paperTheme}
-            onSelectPaperTheme={setPaperTheme}
-            onBackToCalendar={handleBackToCalendar}
-            onPrevDay={goToPrevDay}
-            onNextDay={goToNextDay}
-          />
-        )}
+        <CalendarView
+          currentMonth={currentMonth}
+          selectedDate={selectedDate}
+          readingsData={bibleData}
+          onSelectDate={(date) => selectDate(date)}
+          onPrevMonth={prevMonth}
+          onNextMonth={nextMonth}
+          onGoToToday={goToToday}
+          onOpenReadingView={() => {}}
+        />
+
+        {/*<ReadingView
+          selectedDate={selectedDate}
+          passages={currentReadings}
+          paperTheme={paperTheme}
+          onSelectPaperTheme={setPaperTheme}
+          onPrevDay={goToPrevDay}
+          onNextDay={goToNextDay}
+        />*/}
       </main>
     </div>
   );
