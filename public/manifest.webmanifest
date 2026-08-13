@@ -1,0 +1,24 @@
+{
+  "name": "Bible Reader - Daily Offline Scripture",
+  "short_name": "Bible Reader",
+  "description": "A simple, elegant, offline-first Bible reading PWA with daily passage calendar.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#1e293b",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["books", "lifestyle", "education"]
+}
