@@ -1,12 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, CheckCircle2, Volume2, VolumeX, Type, Bookmark, BookOpen } from 'lucide-react';
-import type { Passage, ReaderFontSize } from '../../types';
+import { 
+  ArrowLeft, 
+  ChevronLeft, 
+  ChevronRight, 
+  CheckCircle2, 
+  Volume2, 
+  VolumeX, 
+  Type, 
+  Bookmark, 
+  BookOpen, 
+  Sparkles,
+  Palette
+} from 'lucide-react';
+import type { Passage, ReaderFontSize, PaperTheme, FontStyle } from '../../types';
 import { formatFullDate } from '../../lib/dateUtils';
 
 interface ReadingViewProps {
   selectedDate: Date;
   passages: Passage[];
   isCompleted: boolean;
+  paperTheme: PaperTheme;
+  onSelectPaperTheme: (theme: PaperTheme) => void;
   onToggleComplete: () => void;
   onBackToCalendar: () => void;
   onPrevDay: () => void;
@@ -17,18 +31,35 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
   selectedDate,
   passages,
   isCompleted,
+  paperTheme,
+  onSelectPaperTheme,
   onToggleComplete,
   onBackToCalendar,
   onPrevDay,
   onNextDay,
 }) => {
   const [fontSize, setFontSize] = useState<ReaderFontSize>('md');
+  const [fontStyle, setFontStyle] = useState<FontStyle>('serif');
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
   const [speechSupported, setSpeechSupported] = useState<boolean>(false);
+  const [highlightedVerse, setHighlightedVerse] = useState<string | null>(null);
+  const [copiedNotice, setCopiedNotice] = useState<boolean>(false);
+  const [scrollProgress, setScrollProgress] = useState<number>(0);
 
   useEffect(() => {
     setSpeechSupported('speechSynthesis' in window);
+
+    const handleScroll = () => {
+      const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (totalHeight > 0) {
+        const currentProgress = (window.scrollY / totalHeight) * 100;
+        setScrollProgress(Math.min(100, Math.max(0, currentProgress)));
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
     return () => {
+      window.removeEventListener('scroll', handleScroll);
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
@@ -44,7 +75,6 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
       return;
     }
 
-    // Build text from passages
     const fullText = passages
       .map(
         (p) =>
@@ -59,12 +89,17 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
     const utterance = new SpeechSynthesisUtterance(fullText);
     utterance.rate = 0.95;
     utterance.pitch = 1.0;
-
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
 
     window.speechSynthesis.speak(utterance);
     setIsSpeaking(true);
+  };
+
+  const copyVerse = (text: string, refStr: string) => {
+    navigator.clipboard.writeText(`"${text}" — ${refStr}`);
+    setCopiedNotice(true);
+    setTimeout(() => setCopiedNotice(false), 2000);
   };
 
   const getFontSizeClass = () => {
@@ -77,161 +112,184 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-24">
-      {/* Top Reader Navigation Bar */}
-      <div className="flex items-center justify-between gap-2 py-2 border-b border-[var(--border-subtle)]">
-        <button
-          onClick={onBackToCalendar}
-          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--bg-tertiary)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] transition-colors border border-[var(--border-color)]"
-          aria-label="Back to Calendar"
-        >
-          <ArrowLeft className="w-4 h-4" />
+    <div className="reader-container" data-paper={paperTheme}>
+      {/* Scroll Progress Bar */}
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '4px', zIndex: 40, backgroundColor: 'transparent' }}>
+        <div
+          style={{ height: '100%', backgroundColor: 'var(--accent-gold)', width: `${scrollProgress}%`, transition: 'width 0.15s ease' }}
+        />
+      </div>
+
+      {/* Reader Nav Bar */}
+      <div className="reader-nav-bar">
+        <button onClick={onBackToCalendar} className="btn-secondary" style={{ padding: '0.4rem 0.75rem' }}>
+          <ArrowLeft size={16} />
           <span>Calendar</span>
         </button>
 
-        {/* Previous / Next Day Quick Navigation */}
-        <div className="flex items-center space-x-1">
-          <button
-            onClick={onPrevDay}
-            className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--bg-tertiary)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] transition-colors border border-[var(--border-color)]"
-            title="Previous Day's Reading"
-            aria-label="Previous Day's Reading"
-          >
-            <ChevronLeft className="w-4 h-4" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+          <button onClick={onPrevDay} className="btn-icon" style={{ width: '32px', height: '32px' }} title="Previous Day">
+            <ChevronLeft size={16} />
           </button>
-          <button
-            onClick={onNextDay}
-            className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--bg-tertiary)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] transition-colors border border-[var(--border-color)]"
-            title="Next Day's Reading"
-            aria-label="Next Day's Reading"
-          >
-            <ChevronRight className="w-4 h-4" />
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+            Nav
+          </span>
+          <button onClick={onNextDay} className="btn-icon" style={{ width: '32px', height: '32px' }} title="Next Day">
+            <ChevronRight size={16} />
           </button>
         </div>
 
-        {/* Mark as Completed Button */}
         <button
           onClick={onToggleComplete}
-          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-            isCompleted
-              ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
-              : 'bg-[var(--bg-tertiary)] text-[var(--text-primary)] border-[var(--border-color)] hover:bg-[var(--bg-hover)]'
-          }`}
+          className={`btn-secondary ${isCompleted ? 'badge-success' : ''}`}
+          style={{
+            backgroundColor: isCompleted ? '#10b981' : undefined,
+            color: isCompleted ? '#ffffff' : undefined,
+            borderColor: isCompleted ? '#059669' : undefined
+          }}
         >
-          <CheckCircle2 className="w-4 h-4" />
-          <span>{isCompleted ? 'Completed' : 'Mark Completed'}</span>
+          <CheckCircle2 size={16} />
+          <span>{isCompleted ? 'Done' : 'Complete'}</span>
         </button>
       </div>
 
-      {/* Title Header */}
-      <div className="text-center space-y-1">
-        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-gold)]">
-          Daily Scripture Passage
+      {/* Header */}
+      <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+        <span className="badge-pill">
+          <Sparkles size={12} /> Daily Scripture
         </span>
-        <h2 className="text-2xl sm:text-3xl font-bold font-heading text-[var(--text-primary)]">
+        <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '2rem', fontWeight: 700 }}>
           {formatFullDate(selectedDate)}
         </h2>
       </div>
 
-      {/* Reader Controls Toolbar (Font Size, Audio) */}
-      <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] text-xs">
-        <div className="flex items-center space-x-1">
-          <Type className="w-4 h-4 text-[var(--text-muted)] mr-1" />
-          {(['sm', 'md', 'lg', 'xl'] as ReaderFontSize[]).map((size) => (
-            <button
-              key={size}
-              onClick={() => setFontSize(size)}
-              className={`w-7 h-7 rounded-md font-semibold transition-colors uppercase ${
-                fontSize === size
-                  ? 'bg-[var(--accent-gold)] text-white'
-                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
-              }`}
-            >
-              {size}
-            </button>
-          ))}
+      {/* Toolbar */}
+      <div className="reader-toolbar">
+        {/* Paper Theme Buttons */}
+        <div className="paper-themes-row">
+          <Palette size={14} color="var(--text-muted)" style={{ margin: '0 4px' }} />
+          <button onClick={() => onSelectPaperTheme('parchment')} className={`paper-btn ${paperTheme === 'parchment' ? 'active' : ''}`}>Cream</button>
+          <button onClick={() => onSelectPaperTheme('sepia')} className={`paper-btn ${paperTheme === 'sepia' ? 'active' : ''}`}>Sepia</button>
+          <button onClick={() => onSelectPaperTheme('midnight')} className={`paper-btn ${paperTheme === 'midnight' ? 'active' : ''}`}>Slate</button>
+          <button onClick={() => onSelectPaperTheme('oled')} className={`paper-btn ${paperTheme === 'oled' ? 'active' : ''}`}>OLED</button>
+        </div>
+
+        {/* Font Style & Size */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button
+            onClick={() => setFontStyle((prev) => (prev === 'serif' ? 'sans' : 'serif'))}
+            className="btn-secondary"
+            style={{ padding: '0.35rem 0.65rem', textTransform: 'uppercase', fontSize: '0.75rem' }}
+          >
+            {fontStyle}
+          </button>
+
+          <div className="paper-themes-row">
+            <Type size={14} color="var(--text-muted)" style={{ margin: '0 4px' }} />
+            {(['sm', 'md', 'lg', 'xl'] as ReaderFontSize[]).map((size) => (
+              <button
+                key={size}
+                onClick={() => setFontSize(size)}
+                className={`paper-btn ${fontSize === size ? 'active' : ''}`}
+                style={{ textTransform: 'uppercase' }}
+              >
+                {size}
+              </button>
+            ))}
+          </div>
         </div>
 
         {speechSupported && (
           <button
             onClick={toggleSpeech}
-            className={`flex items-center space-x-1 px-2.5 py-1 rounded-md font-medium transition-colors ${
-              isSpeaking
-                ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30'
-                : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
-            }`}
-            title="Audio Read-Aloud"
+            className="btn-secondary"
+            style={{
+              backgroundColor: isSpeaking ? '#f59e0b' : undefined,
+              color: isSpeaking ? '#ffffff' : undefined,
+              fontSize: '0.78rem'
+            }}
           >
-            {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-            <span className="hidden sm:inline">{isSpeaking ? 'Stop Audio' : 'Listen'}</span>
+            {isSpeaking ? <VolumeX size={14} /> : <Volume2 size={14} />}
+            <span>{isSpeaking ? 'Pause Audio' : 'Listen Now'}</span>
           </button>
         )}
       </div>
 
+      {copiedNotice && (
+        <div style={{ padding: '0.65rem', borderRadius: 'var(--radius-md)', backgroundColor: '#10b981', color: '#ffffff', fontSize: '0.8rem', fontWeight: 700, textAlign: 'center' }}>
+          ✓ Verse copied to clipboard!
+        </div>
+      )}
+
       {/* Passages List */}
       {passages.length > 0 ? (
-        <div className="space-y-8">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {passages.map((passage, pIdx) => (
-            <article
-              key={pIdx}
-              className="surface-card p-6 sm:p-8 space-y-6 shadow-sm border border-[var(--border-color)]"
-            >
-              {/* Passage Title Header */}
-              <div className="border-b border-[var(--border-subtle)] pb-4 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-[var(--accent-gold-subtle)] text-[var(--accent-gold)]">
-                    {passage.category || 'Scripture'}
-                  </span>
-                  <Bookmark className="w-4 h-4 text-[var(--text-muted)] opacity-60" />
+            <article key={pIdx} className="passage-article">
+              <div className="passage-header">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <span className="badge-pill">{passage.category || 'Scripture'}</span>
+                  <Bookmark size={16} color="var(--accent-gold)" style={{ marginLeft: 'auto' }} />
                 </div>
-                <h3 className="text-xl sm:text-2xl font-bold font-heading text-[var(--text-primary)]">
-                  {passage.book} {passage.chapters}
-                </h3>
+                <h3>{passage.book} {passage.chapters}</h3>
               </div>
 
-              {/* Verses Content */}
               {passage.versesText && passage.versesText.length > 0 ? (
-                <div className={`space-y-4 font-serif text-[var(--text-primary)] ${getFontSizeClass()}`}>
-                  {passage.versesText.map((verse) => (
-                    <p key={verse.number} className="relative pl-6 leading-relaxed">
-                      <sup className="absolute left-0 top-1 text-xs font-sans font-bold text-[var(--accent-gold)] select-none">
-                        {verse.number}
-                      </sup>
-                      <span>{verse.text}</span>
-                    </p>
-                  ))}
+                <div className={`verses-list ${fontStyle === 'serif' ? 'font-scripture' : 'font-ui'} ${getFontSizeClass()}`}>
+                  {passage.versesText.map((verse, vIdx) => {
+                    const verseId = `${pIdx}-${verse.number}`;
+                    const isHighlighted = highlightedVerse === verseId;
+
+                    return (
+                      <p
+                        key={verse.number}
+                        onClick={() => {
+                          setHighlightedVerse(isHighlighted ? null : verseId);
+                          copyVerse(verse.text, `${passage.book} ${passage.chapters}:${verse.number}`);
+                        }}
+                        className={`verse-paragraph ${vIdx === 0 ? 'drop-cap' : ''}`}
+                        style={{
+                          backgroundColor: isHighlighted ? 'var(--accent-gold-subtle)' : undefined,
+                          borderLeft: isHighlighted ? '3px solid var(--accent-gold)' : undefined
+                        }}
+                      >
+                        <sup className="verse-num">{verse.number}</sup>
+                        <span>{verse.text}</span>
+                      </p>
+                    );
+                  })}
                 </div>
               ) : (
-                <div className="py-6 text-center text-sm text-[var(--text-muted)] italic font-serif">
-                  Refer to {passage.book} {passage.chapters} in your preferred printed or audio Bible translation.
+                <div style={{ padding: '2rem 0', textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                  Refer to {passage.book} {passage.chapters} in your printed Bible.
                 </div>
               )}
             </article>
           ))}
         </div>
       ) : (
-        <div className="surface-card p-8 text-center space-y-4">
-          <BookOpen className="w-10 h-10 mx-auto text-[var(--text-muted)] opacity-50" />
-          <h3 className="text-lg font-bold font-heading text-[var(--text-primary)]">
-            No Assigned Reading
-          </h3>
-          <p className="text-xs text-[var(--text-secondary)] max-w-sm mx-auto">
-            There are no assigned scripture passages for {formatFullDate(selectedDate)}.
-            Use the navigation buttons above to view other dates.
+        <div className="card-surface" style={{ textAlign: 'center', padding: '2.5rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+          <BookOpen size={40} color="var(--accent-gold)" />
+          <h3>No Reading Assigned</h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            There are no assigned passages for {formatFullDate(selectedDate)}.
           </p>
         </div>
       )}
 
-      {/* Bottom Completion Banner */}
-      <div className="pt-4 flex justify-center">
+      {/* Completion CTA */}
+      <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '1rem' }}>
         <button
           onClick={onToggleComplete}
-          className={`btn-primary flex items-center space-x-2 text-sm px-6 py-3 shadow-md ${
-            isCompleted ? 'bg-emerald-600 hover:bg-emerald-700' : ''
-          }`}
+          className="btn-primary"
+          style={{
+            backgroundColor: isCompleted ? '#10b981' : undefined,
+            fontSize: '1rem',
+            padding: '0.85rem 2rem'
+          }}
         >
-          <CheckCircle2 className="w-5 h-5" />
-          <span>{isCompleted ? 'Marked as Completed!' : 'Complete Today\'s Reading'}</span>
+          <CheckCircle2 size={20} />
+          <span>{isCompleted ? 'Completed — Well Done!' : 'Mark Today\'s Reading Complete'}</span>
         </button>
       </div>
     </div>

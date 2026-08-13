@@ -14,6 +14,10 @@ export type BibleReadingsMap = Record<string, Passage[]>;
 
 export type ReadingStatusMap = Record<string, boolean>;
 
+export type PaperTheme = 'parchment' | 'sepia' | 'midnight' | 'oled';
+
+export type FontStyle = 'serif' | 'sans';
+
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 export type ReaderFontSize = 'sm' | 'md' | 'lg' | 'xl';

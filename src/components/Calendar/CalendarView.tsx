@@ -1,5 +1,17 @@
-import React from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, CheckCircle2, BookOpen, ArrowRight, Info } from 'lucide-react';
+import React, { useState } from 'react';
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  Calendar as CalendarIcon, 
+  CheckCircle2, 
+  BookOpen, 
+  ArrowRight, 
+  Info, 
+  Sparkles, 
+  Grid, 
+  Columns,
+  Clock
+} from 'lucide-react';
 import type { BibleReadingsMap, ReadingStatusMap } from '../../types';
 import { getCalendarGridDays, formatMonthYear, formatFullDate, formatDateKey } from '../../lib/dateUtils';
 
@@ -28,124 +40,122 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onGoToToday,
   onOpenReadingView,
 }) => {
+  const [viewMode, setViewMode] = useState<'grid' | 'week'>('grid');
+  
   const gridDays = getCalendarGridDays(currentMonth, selectedDate, readingsData, completedMap);
   const selectedDateStr = formatDateKey(selectedDate);
   const selectedReadings = readingsData[selectedDateStr] || [];
   const isSelectedCompleted = Boolean(completedMap[selectedDateStr]);
 
+  const totalVerses = selectedReadings.reduce((sum, p) => sum + (p.versesText?.length || 0), 0);
+  const estimatedReadTime = Math.max(1, Math.ceil(totalVerses * 0.4));
+
+  const selectedIndex = gridDays.findIndex((d) => d.isSelected);
+  const weekDays = selectedIndex >= 0
+    ? gridDays.slice(Math.max(0, selectedIndex - 3), Math.min(gridDays.length, selectedIndex + 4))
+    : gridDays.slice(0, 7);
+
+  const activeDaysList = viewMode === 'grid' ? gridDays : weekDays;
+
   return (
-    <div className="space-y-6 pb-20">
-      {/* Calendar Card Container */}
-      <div className="surface-card p-4 sm:p-6 space-y-4 shadow-sm">
-        {/* Calendar Header Controls */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <CalendarIcon className="w-5 h-5 text-[var(--accent-gold)]" />
-            <h2 className="text-xl font-bold font-heading text-[var(--text-primary)]">
-              {formatMonthYear(currentMonth)}
-            </h2>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* Reflection Quote Banner */}
+      <div className="quote-banner">
+        <div className="quote-banner-content">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-gold)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>
+            <Sparkles size={14} />
+            <span>Daily Reflection</span>
+          </div>
+          <p className="quote-text">
+            "Thy word is a lamp unto my feet, and a light unto my path."
+          </p>
+          <div className="quote-author">— Psalm 119:105</div>
+        </div>
+      </div>
+
+      {/* Calendar Grid Container Card */}
+      <div className="card-surface calendar-card">
+        {/* Header Controls */}
+        <div className="calendar-top-bar">
+          <div className="calendar-month-title">
+            <div className="navbar-icon-box" style={{ width: '36px', height: '36px' }}>
+              <CalendarIcon size={18} />
+            </div>
+            <div>
+              <h2>{formatMonthYear(currentMonth)}</h2>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Select a date to open assigned scripture
+              </span>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-1.5">
-            <button
-              onClick={onGoToToday}
-              className="px-2.5 py-1 text-xs font-semibold rounded-md bg-[var(--bg-tertiary)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] transition-colors border border-[var(--border-color)]"
-              title="Go to Today"
-            >
+          <div className="calendar-controls">
+            {/* View Mode Toggle */}
+            <div style={{ display: 'flex', backgroundColor: 'var(--bg-tertiary)', padding: '2px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <button
+                onClick={() => setViewMode('grid')}
+                className="btn-icon"
+                style={{ width: '30px', height: '30px', backgroundColor: viewMode === 'grid' ? 'var(--bg-secondary)' : 'transparent', border: 'none' }}
+                title="Month Grid View"
+              >
+                <Grid size={14} color={viewMode === 'grid' ? 'var(--accent-gold)' : 'var(--text-muted)'} />
+              </button>
+              <button
+                onClick={() => setViewMode('week')}
+                className="btn-icon"
+                style={{ width: '30px', height: '30px', backgroundColor: viewMode === 'week' ? 'var(--bg-secondary)' : 'transparent', border: 'none' }}
+                title="Week Strip View"
+              >
+                <Columns size={14} color={viewMode === 'week' ? 'var(--accent-gold)' : 'var(--text-muted)'} />
+              </button>
+            </div>
+
+            <button onClick={onGoToToday} className="btn-secondary" style={{ padding: '0.35rem 0.75rem', minHeight: '32px' }}>
               Today
             </button>
-            <button
-              onClick={onPrevMonth}
-              className="w-8 h-8 rounded-md flex items-center justify-center bg-[var(--bg-tertiary)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] transition-colors border border-[var(--border-color)]"
-              title="Previous Month"
-              aria-label="Previous Month"
-            >
-              <ChevronLeft className="w-4 h-4" />
+
+            <button onClick={onPrevMonth} className="btn-icon" style={{ width: '32px', height: '32px' }} title="Previous Month">
+              <ChevronLeft size={16} />
             </button>
-            <button
-              onClick={onNextMonth}
-              className="w-8 h-8 rounded-md flex items-center justify-center bg-[var(--bg-tertiary)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] transition-colors border border-[var(--border-color)]"
-              title="Next Month"
-              aria-label="Next Month"
-            >
-              <ChevronRight className="w-4 h-4" />
+            <button onClick={onNextMonth} className="btn-icon" style={{ width: '32px', height: '32px' }} title="Next Month">
+              <ChevronRight size={16} />
             </button>
           </div>
         </div>
 
-        {/* Legend */}
-        <div className="flex items-center justify-between text-xs text-[var(--text-muted)] pt-1 border-t border-[var(--border-subtle)]">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-1.5">
-              <span className="w-2 h-2 rounded-full bg-[var(--accent-gold)]"></span>
-              <span>Has Reading</span>
-            </div>
-            <div className="flex items-center space-x-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>Completed</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Days of Week Row */}
-        <div className="grid grid-cols-7 gap-1 text-center font-semibold text-xs text-[var(--text-muted)] py-1">
+        {/* Days of Week Header */}
+        <div className="calendar-weekdays">
           {WEEKDAYS.map((day) => (
-            <div key={day} className="py-1">
-              {day}
-            </div>
+            <div key={day}>{day}</div>
           ))}
         </div>
 
         {/* Calendar Grid Cells */}
-        <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
-          {gridDays.map((dayItem, idx) => {
+        <div className="calendar-grid">
+          {activeDaysList.map((dayItem, idx) => {
             const { date, dayNumber, isCurrentMonth, isToday, isSelected, hasReading, isCompleted } = dayItem;
 
-            let cellBgClass = 'bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]';
-            
-            if (!isCurrentMonth) {
-              cellBgClass = 'opacity-40 text-[var(--text-muted)] hover:opacity-70';
-            }
-
-            if (isSelected) {
-              cellBgClass = 'bg-[var(--accent-gold)] text-white font-bold shadow-md transform scale-[1.03] z-10';
-            }
+            let cellClass = 'calendar-cell';
+            if (!isCurrentMonth) cellClass += ' muted';
+            if (isToday) cellClass += ' today';
+            if (isSelected) cellClass += ' selected';
 
             return (
               <button
                 key={idx}
                 onClick={() => onSelectDate(date)}
-                className={`relative min-h-[50px] sm:min-h-[58px] p-1 rounded-xl flex flex-col items-center justify-between border transition-all duration-150 ${
-                  isSelected ? 'border-[var(--accent-gold-hover)]' : isToday ? 'border-[var(--accent-gold)] bg-[var(--accent-gold-subtle)]' : 'border-[var(--border-subtle)]'
-                } ${cellBgClass}`}
-                aria-label={`${formatFullDate(date)}${hasReading ? ', has readings' : ''}${isCompleted ? ', completed' : ''}`}
+                className={cellClass}
+                aria-label={`${formatFullDate(date)}${hasReading ? ', has reading' : ''}`}
               >
-                {/* Top Row: Day Number & Today indicator */}
-                <div className="w-full flex items-center justify-between px-1">
-                  <span className={`text-xs sm:text-sm font-semibold ${isToday && !isSelected ? 'text-[var(--accent-gold)]' : ''}`}>
-                    {dayNumber}
-                  </span>
-
+                <div className="cell-top-row">
+                  <span className="cell-day-num">{dayNumber}</span>
                   {isCompleted && (
-                    <CheckCircle2
-                      className={`w-3.5 h-3.5 ${
-                        isSelected ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'
-                      }`}
-                    />
+                    <CheckCircle2 size={13} color={isSelected ? '#ffffff' : '#10b981'} />
                   )}
                 </div>
 
-                {/* Bottom Row: Reading Indicator */}
-                <div className="w-full flex items-center justify-center pb-1">
-                  {hasReading ? (
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        isSelected ? 'bg-white' : 'bg-[var(--accent-gold)]'
-                      }`}
-                    />
-                  ) : (
-                    <span className="w-1.5 h-1.5 opacity-0" />
-                  )}
+                <div className="cell-dot-row">
+                  {hasReading ? <span className="reading-dot" /> : null}
                 </div>
               </button>
             );
@@ -153,75 +163,71 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
 
-      {/* Selected Date Reading Preview Banner Card */}
-      <div className="surface-card p-5 sm:p-6 space-y-4 border-l-4 border-l-[var(--accent-gold)] shadow-md">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      {/* Selected Date Preview Card */}
+      <div className="card-surface reading-preview-card">
+        <div className="preview-header">
           <div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-gold)]">
-              Selected Date
-            </span>
-            <h3 className="text-lg font-bold font-heading text-[var(--text-primary)]">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--accent-gold)' }}>
+                Selected Scripture Date
+              </span>
+              {isSelectedCompleted && (
+                <span className="badge-pill badge-success">
+                  <CheckCircle2 size={12} /> Completed
+                </span>
+              )}
+            </div>
+            <h3 style={{ marginTop: '0.2rem', fontFamily: 'var(--font-heading)', fontSize: '1.3rem', fontWeight: 700 }}>
               {formatFullDate(selectedDate)}
             </h3>
           </div>
 
-          {isSelectedCompleted && (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 self-start sm:self-auto">
-              <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> Completed
-            </span>
+          {selectedReadings.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                <BookOpen size={15} color="var(--accent-gold)" />
+                {selectedReadings.length} Passages
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                <Clock size={15} color="var(--accent-gold)" />
+                ~{estimatedReadTime} min read
+              </span>
+            </div>
           )}
         </div>
 
-        {/* Assigned Readings List */}
         {selectedReadings.length > 0 ? (
-          <div className="space-y-3">
-            <div className="grid gap-2.5">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            <div className="preview-passages-list">
               {selectedReadings.map((p, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between p-3 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-color)]"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 rounded-lg bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--accent-gold)] font-bold text-xs">
-                      {idx + 1}
-                    </div>
+                <div key={idx} className="passage-card-item">
+                  <div className="passage-card-info">
+                    <div className="passage-num-badge">{idx + 1}</div>
                     <div>
-                      <div className="font-semibold text-sm text-[var(--text-primary)] font-heading">
-                        {p.book} {p.chapters}
-                      </div>
-                      {p.category && (
-                        <div className="text-[11px] text-[var(--text-muted)]">
-                          {p.category}
-                        </div>
-                      )}
+                      <div className="passage-book-title">{p.book} {p.chapters}</div>
+                      {p.category && <div className="passage-category">{p.category}</div>}
                     </div>
                   </div>
-                  <span className="text-xs text-[var(--text-muted)] font-medium">
+                  <span className="badge-pill" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
                     {p.versesText?.length || 0} Verses
                   </span>
                 </div>
               ))}
             </div>
 
-            <button
-              onClick={onOpenReadingView}
-              className="w-full btn-primary flex items-center justify-center space-x-2 text-sm mt-2"
-            >
-              <BookOpen className="w-4 h-4" />
-              <span>Read Scripture Passage</span>
-              <ArrowRight className="w-4 h-4" />
+            <button onClick={onOpenReadingView} className="btn-primary" style={{ width: '100%', fontSize: '1rem', marginTop: '0.25rem' }}>
+              <BookOpen size={18} />
+              <span>Begin Daily Reading</span>
+              <ArrowRight size={18} />
             </button>
           </div>
         ) : (
-          <div className="p-4 rounded-lg bg-[var(--bg-tertiary)] text-center space-y-2 border border-[var(--border-color)]">
-            <Info className="w-5 h-5 mx-auto text-[var(--text-muted)]" />
-            <p className="text-xs text-[var(--text-secondary)]">
+          <div style={{ padding: '1.5rem', textAlign: 'center', backgroundColor: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+            <Info size={24} color="var(--text-muted)" />
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
               No assigned Bible reading for this date.
             </p>
-            <button
-              onClick={onGoToToday}
-              className="text-xs font-semibold text-[var(--accent-gold)] hover:underline"
-            >
+            <button onClick={onGoToToday} className="btn-secondary" style={{ border: 'none', color: 'var(--accent-gold)' }}>
               Jump to Today's Reading →
             </button>
           </div>

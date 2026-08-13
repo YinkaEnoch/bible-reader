@@ -7,6 +7,7 @@ import { CalendarView } from './components/Calendar/CalendarView';
 import { ReadingView } from './components/ReadingView/ReadingView';
 import { ProgressModal } from './components/Progress/ProgressModal';
 import { BottomNav } from './components/BottomNav/BottomNav';
+import type { PaperTheme } from './types';
 import { CheckCircle, Wifi, WifiOff } from 'lucide-react';
 
 export function App() {
@@ -31,6 +32,9 @@ export function App() {
 
   const [activeView, setActiveView] = useState<'calendar' | 'reading'>('calendar');
   const [isStatsOpen, setIsStatsOpen] = useState<boolean>(false);
+  const [paperTheme, setPaperTheme] = useState<PaperTheme>(() => {
+    return theme === 'dark' ? 'midnight' : 'parchment';
+  });
 
   const handleOpenReadingView = () => {
     setActiveView('reading');
@@ -43,8 +47,11 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors selection:bg-[var(--accent-gold-light)] selection:text-[var(--accent-gold)]">
-      {/* Top Bar Navigation */}
+    <div
+      style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+      data-paper={paperTheme}
+    >
+      {/* Top Navbar */}
       <Navbar
         theme={theme}
         onToggleTheme={toggleTheme}
@@ -53,11 +60,11 @@ export function App() {
         onInstall={triggerInstall}
         onOpenStats={() => setIsStatsOpen(true)}
         monthCompleted={stats.monthCompleted}
+        totalCompleted={stats.totalCompleted}
       />
 
-      {/* Main Content Area */}
-      <main className="app-container pt-6 pb-12 flex-1">
-        {/* View Switcher: Calendar vs Reading */}
+      {/* Main Viewport Container */}
+      <main className="app-viewport" style={{ paddingTop: '1.25rem', paddingBottom: '3.5rem' }}>
         {activeView === 'calendar' ? (
           <CalendarView
             currentMonth={currentMonth}
@@ -75,6 +82,8 @@ export function App() {
             selectedDate={selectedDate}
             passages={currentReadings}
             isCompleted={isSelectedCompleted}
+            paperTheme={paperTheme}
+            onSelectPaperTheme={setPaperTheme}
             onToggleComplete={toggleComplete}
             onBackToCalendar={handleBackToCalendar}
             onPrevDay={goToPrevDay}
@@ -83,35 +92,33 @@ export function App() {
         )}
       </main>
 
-      {/* Desktop / Footer Details */}
-      <footer className="mt-auto py-6 border-t border-[var(--border-color)] bg-[var(--bg-secondary)]/50 text-center text-xs text-[var(--text-muted)] transition-colors">
-        <div className="max-w-3xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center space-x-2">
+      {/* Footer */}
+      <footer style={{ marginTop: 'auto', padding: '1.25rem 1rem', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)', textAlign: 'center', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+        <div style={{ maxWidth: '820px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             {isOffline ? (
-              <span className="flex items-center space-x-1 text-amber-600 dark:text-amber-400">
-                <WifiOff className="w-3.5 h-3.5" />
-                <span>Offline Mode (Cached & Available)</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#d97706', fontWeight: 600 }}>
+                <WifiOff size={14} />
+                <span>Offline Mode (Cached Assets Ready)</span>
               </span>
             ) : (
-              <span className="flex items-center space-x-1 text-emerald-600 dark:text-emerald-400">
-                <Wifi className="w-3.5 h-3.5" />
-                <span>Online — PWA Ready</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#10b981', fontWeight: 600 }}>
+                <Wifi size={14} />
+                <span>PWA Active — Standalone Ready</span>
               </span>
             )}
             {swRegistered && (
-              <span className="inline-flex items-center text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                <CheckCircle className="w-3 h-3 mr-1" /> Cache Ready
+              <span className="badge-pill badge-success" style={{ fontSize: '0.65rem' }}>
+                <CheckCircle size={10} /> SW Active
               </span>
             )}
           </div>
 
-          <div>
-            Bible Reader PWA — Lightweight, Offline-First Daily Scripture
-          </div>
+          <div>Scripture Reader PWA — Lightweight Offline Daily Bible</div>
         </div>
       </footer>
 
-      {/* Mobile Bottom Navigation */}
+      {/* Bottom Nav */}
       <BottomNav
         activeView={activeView}
         onSelectView={(v) => {
@@ -122,7 +129,7 @@ export function App() {
         hasCurrentReadings={currentReadings.length > 0}
       />
 
-      {/* Progress & Stats Modal */}
+      {/* Stats Modal */}
       <ProgressModal
         isOpen={isStatsOpen}
         onClose={() => setIsStatsOpen(false)}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Award, CheckCircle2, Flame } from 'lucide-react';
+import { X, Award, CheckCircle2, Flame, Sparkles } from 'lucide-react';
 import { formatMonthYear } from '../../lib/dateUtils';
 
 interface ProgressModalProps {
@@ -22,79 +22,76 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
+  const strokeDashoffset = 283 - (283 * Math.min(stats.completionRate, 100)) / 100;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="surface-card max-w-sm w-full p-6 space-y-6 shadow-2xl relative border border-[var(--border-color)]">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-          aria-label="Close modal"
-        >
-          <X className="w-4 h-4" />
+    <div className="modal-overlay">
+      <div className="modal-card">
+        <button onClick={onClose} className="modal-close" aria-label="Close modal">
+          <X size={16} />
         </button>
 
-        {/* Modal Header */}
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-[var(--accent-gold-subtle)] text-[var(--accent-gold)] flex items-center justify-center font-bold">
-            <Award className="w-6 h-6" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div className="navbar-icon-box" style={{ width: '44px', height: '44px', borderRadius: '14px' }}>
+            <Award size={22} />
           </div>
           <div>
-            <h3 className="text-lg font-bold font-heading text-[var(--text-primary)]">
-              Reading Progress
-            </h3>
-            <p className="text-xs text-[var(--text-muted)]">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--accent-gold)', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>
+              <Sparkles size={12} />
+              <span>Scripture Journey</span>
+            </div>
+            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', fontWeight: 700 }}>
               {formatMonthYear(currentMonth)}
-            </p>
+            </h3>
           </div>
         </div>
 
-        {/* Key Metrics Grid */}
-        <div className="grid grid-cols-2 gap-3 text-center">
-          <div className="p-3.5 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] space-y-1">
-            <Flame className="w-5 h-5 mx-auto text-amber-500" />
-            <div className="text-2xl font-bold font-heading text-[var(--text-primary)]">
-              {stats.monthCompleted}
-            </div>
-            <div className="text-[11px] font-semibold text-[var(--text-muted)]">
-              This Month
-            </div>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] space-y-1">
-            <CheckCircle2 className="w-5 h-5 mx-auto text-emerald-500" />
-            <div className="text-2xl font-bold font-heading text-[var(--text-primary)]">
-              {stats.totalCompleted}
-            </div>
-            <div className="text-[11px] font-semibold text-[var(--text-muted)]">
-              Total Readings
+        {/* Gauge */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', padding: '0.5rem 0' }}>
+          <div style={{ position: 'relative', width: '120px', height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }} viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="45" stroke="var(--bg-tertiary)" strokeWidth="8" fill="transparent" />
+              <circle
+                cx="50"
+                cy="50"
+                r="45"
+                stroke="var(--accent-gold)"
+                strokeWidth="8"
+                strokeDasharray="283"
+                strokeDashoffset={strokeDashoffset}
+                strokeLinecap="round"
+                fill="transparent"
+                style={{ transition: 'stroke-dashoffset 1s ease' }}
+              />
+            </svg>
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', paddingTop: '1.75rem' }}>
+              <span style={{ fontSize: '1.6rem', fontWeight: 900, fontFamily: 'var(--font-heading)' }}>
+                {stats.completionRate}%
+              </span>
+              <span style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                Completed
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Progress Bar */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs font-semibold">
-            <span className="text-[var(--text-secondary)]">Month Goal</span>
-            <span className="text-[var(--accent-gold)]">{stats.completionRate}%</span>
+        {/* Metrics Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', textAlign: 'center' }}>
+          <div style={{ padding: '0.85rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
+            <Flame size={22} color="#f59e0b" fill="#f59e0b" style={{ margin: '0 auto 4px auto' }} />
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, fontFamily: 'var(--font-heading)' }}>{stats.monthCompleted}</div>
+            <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Month Streak</div>
           </div>
-          <div className="w-full h-3 rounded-full bg-[var(--bg-tertiary)] overflow-hidden border border-[var(--border-subtle)]">
-            <div
-              className="h-full bg-gradient-to-r from-[var(--accent-gold)] to-emerald-500 rounded-full transition-all duration-500"
-              style={{ width: `${Math.min(stats.completionRate, 100)}%` }}
-            />
+
+          <div style={{ padding: '0.85rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
+            <CheckCircle2 size={22} color="#10b981" style={{ margin: '0 auto 4px auto' }} />
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, fontFamily: 'var(--font-heading)' }}>{stats.totalCompleted}</div>
+            <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Days</div>
           </div>
-          <p className="text-[11px] text-[var(--text-muted)] text-center pt-1">
-            {stats.monthCompleted} of {stats.totalMonthReadings} scheduled readings completed.
-          </p>
         </div>
 
-        {/* Done CTA */}
-        <button
-          onClick={onClose}
-          className="w-full btn-primary text-sm py-2.5"
-        >
-          Keep Reading
+        <button onClick={onClose} className="btn-primary" style={{ width: '100%', fontSize: '0.9rem' }}>
+          Continue Reading
         </button>
       </div>
     </div>
