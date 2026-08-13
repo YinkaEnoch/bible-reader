@@ -4,12 +4,10 @@ import {
   ChevronRight,
   Calendar as CalendarIcon,
   BookOpen,
-  ArrowRight,
   Info,
   Sparkles,
   Grid,
   Columns,
-  Clock,
 } from "lucide-react";
 import type { BibleReadingsMap } from "../../types";
 import {
@@ -27,7 +25,6 @@ interface CalendarViewProps {
   onPrevMonth: () => void;
   onNextMonth: () => void;
   onGoToToday: () => void;
-  onOpenReadingView: () => void;
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -40,7 +37,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onPrevMonth,
   onNextMonth,
   onGoToToday,
-  onOpenReadingView,
 }) => {
   const [viewMode, setViewMode] = useState<"grid" | "week">("grid");
 
@@ -52,12 +48,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   );
   const selectedDateStr = formatDateKey(selectedDate);
   const selectedReadings = readingsData[selectedDateStr] || [];
-
-  const totalVerses = selectedReadings.reduce(
-    (sum, p) => sum + (p.versesText?.length || 0),
-    0,
-  );
-  const estimatedReadTime = Math.max(1, Math.ceil(totalVerses * 0.4));
 
   const selectedIndex = gridDays.findIndex((d) => d.isSelected);
   const weekDays =

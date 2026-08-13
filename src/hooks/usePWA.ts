@@ -1,14 +1,7 @@
 import { useState, useEffect } from 'react';
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-}
-
 export function usePWA() {
   const [isOffline, setIsOffline] = useState<boolean>(!navigator.onLine);
-  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState<boolean>(false);
   const [swRegistered, setSwRegistered] = useState<boolean>(false);
 
   useEffect(() => {
@@ -18,19 +11,6 @@ export function usePWA() {
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
-    // Capture install prompt event
-    const handleInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setInstallPrompt(e as BeforeInstallPromptEvent);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleInstallPrompt);
-
-    // Check if app is launched in standalone mode (already installed)
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-      (navigator as unknown as { standalone?: boolean }).standalone === true;
-    setIsInstalled(isStandalone);
 
     // Register Service Worker
     if ('serviceWorker' in navigator) {
@@ -47,25 +27,11 @@ export function usePWA() {
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('beforeinstallprompt', handleInstallPrompt);
     };
   }, []);
 
-  const triggerInstall = async () => {
-    if (!installPrompt) return;
-    await installPrompt.prompt();
-    const choice = await installPrompt.userChoice;
-    if (choice.outcome === 'accepted') {
-      setIsInstalled(true);
-      setInstallPrompt(null);
-    }
-  };
-
   return {
     isOffline,
-    installPrompt,
-    isInstalled,
     swRegistered,
-    triggerInstall,
   };
 }

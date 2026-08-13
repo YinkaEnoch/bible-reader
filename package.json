@@ -1,20 +1,25 @@
 {
   "name": "bible-reader",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cap:sync": "npm run build && npx cap sync",
+    "cap:open": "npx cap open android"
   },
   "dependencies": {
-    "lucide-react": "1.28.0",
+    "@capacitor/core": "^7.0.1",
+    "lucide-react": "^1.28.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@capacitor/android": "^7.0.1",
+    "@capacitor/cli": "^7.0.1",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

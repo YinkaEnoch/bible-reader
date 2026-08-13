@@ -9,7 +9,7 @@ import type { PaperTheme } from "./types";
 
 export function App() {
   const { theme, toggleTheme } = useTheme();
-  const { isOffline, installPrompt, isInstalled, triggerInstall } = usePWA();
+  const { isOffline } = usePWA();
   const {
     bibleData,
     selectedDate,
@@ -45,9 +45,6 @@ export function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
         isOffline={isOffline}
-        installPrompt={installPrompt}
-        isInstalled={isInstalled}
-        onInstall={triggerInstall}
       />
 
       {/* Main Viewport Container */}
@@ -70,7 +67,6 @@ export function App() {
             onPrevMonth={prevMonth}
             onNextMonth={nextMonth}
             onGoToToday={goToToday}
-            onOpenReadingView={() => setActiveView("reading")}
           />
         ) : (
           <ReadingView
