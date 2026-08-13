@@ -307,7 +307,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           >
             <div className="preview-passages-list">
               {selectedReadings.map((p, idx) => (
-                <div key={idx} className="passage-card-item">
+                <div
+                  key={idx}
+                  className="passage-card-item"
+                  onClick={onOpenReadingView}
+                  title="Click to read passage"
+                >
                   <div className="passage-card-info">
                     <div className="passage-num-badge">{idx + 1}</div>
                     <div>
@@ -319,28 +324,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       )}
                     </div>
                   </div>
-                  <span
-                    className="badge-pill"
-                    style={{
-                      backgroundColor: "var(--bg-secondary)",
-                      color: "var(--text-secondary)",
-                    }}
-                  >
+                  <span className="badge-pill">
                     {p.versesText?.length || 0} Verses
                   </span>
                 </div>
               ))}
             </div>
 
-            {/*<button
+            <button
               onClick={onOpenReadingView}
               className="btn-primary"
-              style={{ width: "100%", fontSize: "1rem", marginTop: "0.25rem" }}
+              style={{ width: "100%", fontSize: "0.95rem", marginTop: "0.25rem" }}
             >
               <BookOpen size={18} />
               <span>Read Scripture Passage</span>
               <ArrowRight size={18} />
-            </button>*/}
+            </button>
           </div>
         ) : (
           <div

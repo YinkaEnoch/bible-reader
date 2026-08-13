@@ -23,6 +23,8 @@ export function App() {
     goToPrevDay,
   } = useReadings();
 
+  const [activeView, setActiveView] = useState<"calendar" | "reading">("calendar");
+
   const [paperTheme, setPaperTheme] = useState<PaperTheme>(() => {
     return theme === "dark" ? "midnight" : "parchment";
   });
@@ -59,25 +61,28 @@ export function App() {
           gap: "1.5rem",
         }}
       >
-        <CalendarView
-          currentMonth={currentMonth}
-          selectedDate={selectedDate}
-          readingsData={bibleData}
-          onSelectDate={(date) => selectDate(date)}
-          onPrevMonth={prevMonth}
-          onNextMonth={nextMonth}
-          onGoToToday={goToToday}
-          onOpenReadingView={() => {}}
-        />
-
-        {/*<ReadingView
-          selectedDate={selectedDate}
-          passages={currentReadings}
-          paperTheme={paperTheme}
-          onSelectPaperTheme={setPaperTheme}
-          onPrevDay={goToPrevDay}
-          onNextDay={goToNextDay}
-        />*/}
+        {activeView === "calendar" ? (
+          <CalendarView
+            currentMonth={currentMonth}
+            selectedDate={selectedDate}
+            readingsData={bibleData}
+            onSelectDate={(date) => selectDate(date)}
+            onPrevMonth={prevMonth}
+            onNextMonth={nextMonth}
+            onGoToToday={goToToday}
+            onOpenReadingView={() => setActiveView("reading")}
+          />
+        ) : (
+          <ReadingView
+            selectedDate={selectedDate}
+            passages={currentReadings}
+            paperTheme={paperTheme}
+            onSelectPaperTheme={setPaperTheme}
+            onBackToCalendar={() => setActiveView("calendar")}
+            onPrevDay={goToPrevDay}
+            onNextDay={goToNextDay}
+          />
+        )}
       </main>
     </div>
   );
