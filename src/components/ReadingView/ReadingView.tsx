@@ -3,7 +3,6 @@ import {
   ArrowLeft, 
   ChevronLeft, 
   ChevronRight, 
-  CheckCircle2, 
   Volume2, 
   VolumeX, 
   Type, 
@@ -18,10 +17,8 @@ import { formatFullDate } from '../../lib/dateUtils';
 interface ReadingViewProps {
   selectedDate: Date;
   passages: Passage[];
-  isCompleted: boolean;
   paperTheme: PaperTheme;
   onSelectPaperTheme: (theme: PaperTheme) => void;
-  onToggleComplete: () => void;
   onBackToCalendar: () => void;
   onPrevDay: () => void;
   onNextDay: () => void;
@@ -30,10 +27,8 @@ interface ReadingViewProps {
 export const ReadingView: React.FC<ReadingViewProps> = ({
   selectedDate,
   passages,
-  isCompleted,
   paperTheme,
   onSelectPaperTheme,
-  onToggleComplete,
   onBackToCalendar,
   onPrevDay,
   onNextDay,
@@ -122,41 +117,28 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 
       {/* Reader Nav Bar */}
       <div className="reader-nav-bar">
-        <button onClick={onBackToCalendar} className="btn-secondary" style={{ padding: '0.4rem 0.75rem' }}>
+        <button onClick={onBackToCalendar} className="btn-secondary" style={{ padding: '0.4rem 0.85rem' }}>
           <ArrowLeft size={16} />
-          <span>Calendar</span>
+          <span>Back to Calendar</span>
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           <button onClick={onPrevDay} className="btn-icon" style={{ width: '32px', height: '32px' }} title="Previous Day">
             <ChevronLeft size={16} />
           </button>
           <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-            Nav
+            Day
           </span>
           <button onClick={onNextDay} className="btn-icon" style={{ width: '32px', height: '32px' }} title="Next Day">
             <ChevronRight size={16} />
           </button>
         </div>
-
-        <button
-          onClick={onToggleComplete}
-          className={`btn-secondary ${isCompleted ? 'badge-success' : ''}`}
-          style={{
-            backgroundColor: isCompleted ? '#10b981' : undefined,
-            color: isCompleted ? '#ffffff' : undefined,
-            borderColor: isCompleted ? '#059669' : undefined
-          }}
-        >
-          <CheckCircle2 size={16} />
-          <span>{isCompleted ? 'Done' : 'Complete'}</span>
-        </button>
       </div>
 
       {/* Header */}
       <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
         <span className="badge-pill">
-          <Sparkles size={12} /> Daily Scripture
+          <Sparkles size={12} /> Daily Passage
         </span>
         <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '2rem', fontWeight: 700 }}>
           {formatFullDate(selectedDate)}
@@ -165,7 +147,7 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 
       {/* Toolbar */}
       <div className="reader-toolbar">
-        {/* Paper Theme Buttons */}
+        {/* Paper Themes */}
         <div className="paper-themes-row">
           <Palette size={14} color="var(--text-muted)" style={{ margin: '0 4px' }} />
           <button onClick={() => onSelectPaperTheme('parchment')} className={`paper-btn ${paperTheme === 'parchment' ? 'active' : ''}`}>Cream</button>
@@ -276,22 +258,6 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
           </p>
         </div>
       )}
-
-      {/* Completion CTA */}
-      <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '1rem' }}>
-        <button
-          onClick={onToggleComplete}
-          className="btn-primary"
-          style={{
-            backgroundColor: isCompleted ? '#10b981' : undefined,
-            fontSize: '1rem',
-            padding: '0.85rem 2rem'
-          }}
-        >
-          <CheckCircle2 size={20} />
-          <span>{isCompleted ? 'Completed — Well Done!' : 'Mark Today\'s Reading Complete'}</span>
-        </button>
-      </div>
     </div>
   );
 };

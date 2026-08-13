@@ -5,8 +5,6 @@ import { useReadings } from './hooks/useReadings';
 import { Navbar } from './components/Navbar/Navbar';
 import { CalendarView } from './components/Calendar/CalendarView';
 import { ReadingView } from './components/ReadingView/ReadingView';
-import { ProgressModal } from './components/Progress/ProgressModal';
-import { BottomNav } from './components/BottomNav/BottomNav';
 import type { PaperTheme } from './types';
 import { CheckCircle, Wifi, WifiOff } from 'lucide-react';
 
@@ -18,20 +16,15 @@ export function App() {
     selectedDate,
     currentMonth,
     currentReadings,
-    isSelectedCompleted,
-    completedMap,
-    stats,
     selectDate,
     nextMonth,
     prevMonth,
     goToToday,
     goToNextDay,
     goToPrevDay,
-    toggleComplete,
   } = useReadings();
 
   const [activeView, setActiveView] = useState<'calendar' | 'reading'>('calendar');
-  const [isStatsOpen, setIsStatsOpen] = useState<boolean>(false);
   const [paperTheme, setPaperTheme] = useState<PaperTheme>(() => {
     return theme === 'dark' ? 'midnight' : 'parchment';
   });
@@ -58,9 +51,6 @@ export function App() {
         isOffline={isOffline}
         installPrompt={installPrompt}
         onInstall={triggerInstall}
-        onOpenStats={() => setIsStatsOpen(true)}
-        monthCompleted={stats.monthCompleted}
-        totalCompleted={stats.totalCompleted}
       />
 
       {/* Main Viewport Container */}
@@ -70,7 +60,6 @@ export function App() {
             currentMonth={currentMonth}
             selectedDate={selectedDate}
             readingsData={bibleData}
-            completedMap={completedMap}
             onSelectDate={(date) => selectDate(date)}
             onPrevMonth={prevMonth}
             onNextMonth={nextMonth}
@@ -81,10 +70,8 @@ export function App() {
           <ReadingView
             selectedDate={selectedDate}
             passages={currentReadings}
-            isCompleted={isSelectedCompleted}
             paperTheme={paperTheme}
             onSelectPaperTheme={setPaperTheme}
-            onToggleComplete={toggleComplete}
             onBackToCalendar={handleBackToCalendar}
             onPrevDay={goToPrevDay}
             onNextDay={goToNextDay}
@@ -114,28 +101,9 @@ export function App() {
             )}
           </div>
 
-          <div>Scripture Reader PWA — Lightweight Offline Daily Bible</div>
+          <div>Bible Reader PWA — Lightweight Offline Daily Scripture</div>
         </div>
       </footer>
-
-      {/* Bottom Nav */}
-      <BottomNav
-        activeView={activeView}
-        onSelectView={(v) => {
-          setActiveView(v);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        onOpenStats={() => setIsStatsOpen(true)}
-        hasCurrentReadings={currentReadings.length > 0}
-      />
-
-      {/* Stats Modal */}
-      <ProgressModal
-        isOpen={isStatsOpen}
-        onClose={() => setIsStatsOpen(false)}
-        currentMonth={currentMonth}
-        stats={stats}
-      />
     </div>
   );
 }

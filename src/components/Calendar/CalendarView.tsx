@@ -3,7 +3,6 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Calendar as CalendarIcon, 
-  CheckCircle2, 
   BookOpen, 
   ArrowRight, 
   Info, 
@@ -12,14 +11,13 @@ import {
   Columns,
   Clock
 } from 'lucide-react';
-import type { BibleReadingsMap, ReadingStatusMap } from '../../types';
+import type { BibleReadingsMap } from '../../types';
 import { getCalendarGridDays, formatMonthYear, formatFullDate, formatDateKey } from '../../lib/dateUtils';
 
 interface CalendarViewProps {
   currentMonth: Date;
   selectedDate: Date;
   readingsData: BibleReadingsMap;
-  completedMap: ReadingStatusMap;
   onSelectDate: (date: Date) => void;
   onPrevMonth: () => void;
   onNextMonth: () => void;
@@ -33,7 +31,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   currentMonth,
   selectedDate,
   readingsData,
-  completedMap,
   onSelectDate,
   onPrevMonth,
   onNextMonth,
@@ -42,10 +39,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'week'>('grid');
   
-  const gridDays = getCalendarGridDays(currentMonth, selectedDate, readingsData, completedMap);
+  const gridDays = getCalendarGridDays(currentMonth, selectedDate, readingsData, {});
   const selectedDateStr = formatDateKey(selectedDate);
   const selectedReadings = readingsData[selectedDateStr] || [];
-  const isSelectedCompleted = Boolean(completedMap[selectedDateStr]);
 
   const totalVerses = selectedReadings.reduce((sum, p) => sum + (p.versesText?.length || 0), 0);
   const estimatedReadTime = Math.max(1, Math.ceil(totalVerses * 0.4));
@@ -59,12 +55,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      {/* Reflection Quote Banner */}
+      {/* Reflection Banner */}
       <div className="quote-banner">
         <div className="quote-banner-content">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-gold)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>
             <Sparkles size={14} />
-            <span>Daily Reflection</span>
+            <span>Daily Scripture</span>
           </div>
           <p className="quote-text">
             "Thy word is a lamp unto my feet, and a light unto my path."
@@ -73,7 +69,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
 
-      {/* Calendar Grid Container Card */}
+      {/* Calendar Card */}
       <div className="card-surface calendar-card">
         {/* Header Controls */}
         <div className="calendar-top-bar">
@@ -84,13 +80,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             <div>
               <h2>{formatMonthYear(currentMonth)}</h2>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Select a date to open assigned scripture
+                Select a date to open assigned Bible readings
               </span>
             </div>
           </div>
 
           <div className="calendar-controls">
-            {/* View Mode Toggle */}
             <div style={{ display: 'flex', backgroundColor: 'var(--bg-tertiary)', padding: '2px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
               <button
                 onClick={() => setViewMode('grid')}
@@ -133,7 +128,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         {/* Calendar Grid Cells */}
         <div className="calendar-grid">
           {activeDaysList.map((dayItem, idx) => {
-            const { date, dayNumber, isCurrentMonth, isToday, isSelected, hasReading, isCompleted } = dayItem;
+            const { date, dayNumber, isCurrentMonth, isToday, isSelected, hasReading } = dayItem;
 
             let cellClass = 'calendar-cell';
             if (!isCurrentMonth) cellClass += ' muted';
@@ -149,9 +144,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               >
                 <div className="cell-top-row">
                   <span className="cell-day-num">{dayNumber}</span>
-                  {isCompleted && (
-                    <CheckCircle2 size={13} color={isSelected ? '#ffffff' : '#10b981'} />
-                  )}
                 </div>
 
                 <div className="cell-dot-row">
@@ -163,20 +155,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
 
-      {/* Selected Date Preview Card */}
+      {/* Selected Date Reading Card */}
       <div className="card-surface reading-preview-card">
         <div className="preview-header">
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--accent-gold)' }}>
-                Selected Scripture Date
-              </span>
-              {isSelectedCompleted && (
-                <span className="badge-pill badge-success">
-                  <CheckCircle2 size={12} /> Completed
-                </span>
-              )}
-            </div>
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--accent-gold)' }}>
+              Selected Date
+            </span>
             <h3 style={{ marginTop: '0.2rem', fontFamily: 'var(--font-heading)', fontSize: '1.3rem', fontWeight: 700 }}>
               {formatFullDate(selectedDate)}
             </h3>
@@ -217,7 +202,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
             <button onClick={onOpenReadingView} className="btn-primary" style={{ width: '100%', fontSize: '1rem', marginTop: '0.25rem' }}>
               <BookOpen size={18} />
-              <span>Begin Daily Reading</span>
+              <span>Read Scripture Passage</span>
               <ArrowRight size={18} />
             </button>
           </div>
