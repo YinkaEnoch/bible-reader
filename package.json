@@ -4,7 +4,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "sync:version": "node scripts/sync-version.mjs",
+    "predev": "npm run sync:version",
     "dev": "vite",
+    "prebuild": "npm run sync:version",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",

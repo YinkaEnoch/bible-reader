@@ -1,6 +1,7 @@
 import React from 'react';
 import { BookOpen, Sun, Moon, WifiOff } from 'lucide-react';
 import type { ThemeMode } from '../../types';
+import { APP_VERSION } from '../../version';
 
 interface NavbarProps {
   theme: ThemeMode;
@@ -42,6 +43,16 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="navbar-bottom-row">
           <div className="navbar-subtitle">
             <span>Offline Daily Scripture</span>
+            <span
+              className="badge-pill"
+              style={{
+                fontSize: '0.65rem',
+                padding: '0.1rem 0.45rem',
+                opacity: 0.85,
+              }}
+            >
+              v{APP_VERSION}
+            </span>
             {isOffline && (
               <span className="badge-pill" style={{ color: '#d97706', borderColor: 'rgba(217,119,6,0.3)' }}>
                 <WifiOff size={10} /> Offline
