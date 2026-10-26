@@ -15,6 +15,7 @@ export function App() {
     selectedDate,
     currentMonth,
     currentReadings,
+    isLoadingVerses,
     selectDate,
     nextMonth,
     prevMonth,
@@ -24,6 +25,13 @@ export function App() {
   } = useReadings();
 
   const [activeView, setActiveView] = useState<"calendar" | "reading">("calendar");
+  const [selectedPassageIndex, setSelectedPassageIndex] = useState<number>(0);
+
+  const handleOpenReadingView = (passageIndex: number = 0) => {
+    setSelectedPassageIndex(passageIndex);
+    setActiveView("reading");
+    window.scrollTo({ top: 0, behavior: "instant" });
+  };
 
   const [paperTheme, setPaperTheme] = useState<PaperTheme>(() => {
     return theme === "dark" ? "midnight" : "parchment";
@@ -67,6 +75,7 @@ export function App() {
             onPrevMonth={prevMonth}
             onNextMonth={nextMonth}
             onGoToToday={goToToday}
+            onOpenReadingView={handleOpenReadingView}
           />
         ) : (
           <ReadingView
@@ -77,6 +86,8 @@ export function App() {
             onBackToCalendar={() => setActiveView("calendar")}
             onPrevDay={goToPrevDay}
             onNextDay={goToNextDay}
+            initialPassageIndex={selectedPassageIndex}
+            isLoadingVerses={isLoadingVerses}
           />
         )}
       </main>

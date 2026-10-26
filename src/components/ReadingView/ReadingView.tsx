@@ -27,6 +27,8 @@ interface ReadingViewProps {
   onBackToCalendar?: () => void;
   onPrevDay: () => void;
   onNextDay: () => void;
+  initialPassageIndex?: number;
+  isLoadingVerses?: boolean;
 }
 
 export const ReadingView: React.FC<ReadingViewProps> = ({
@@ -37,6 +39,8 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
   onBackToCalendar,
   onPrevDay,
   onNextDay,
+  initialPassageIndex = 0,
+  isLoadingVerses = false,
 }) => {
   const [fontSize, setFontSize] = useState<ReaderFontSize>("md");
   const [fontStyle, setFontStyle] = useState<FontStyle>("serif");
@@ -66,6 +70,18 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
       }
     };
   }, [selectedDate]);
+
+  useEffect(() => {
+    if (initialPassageIndex !== undefined && initialPassageIndex > 0) {
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`passage-${initialPassageIndex}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [initialPassageIndex, passages]);
 
   const toggleSpeech = () => {
     if (!speechSupported) return;
@@ -314,7 +330,7 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
           style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}
         >
           {passages.map((passage, pIdx) => (
-            <article key={pIdx} className="passage-article">
+            <article key={pIdx} id={`passage-${pIdx}`} className="passage-article">
               <div className="passage-header">
                 <div
                   style={{
@@ -381,8 +397,9 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
                     fontStyle: "italic",
                   }}
                 >
-                  Refer to {passage.book} {passage.chapters} in your printed
-                  Bible.
+                  {isLoadingVerses
+                    ? "Loading scripture text..."
+                    : `Refer to ${passage.book} ${passage.chapters} in your printed Bible.`}
                 </div>
               )}
             </article>

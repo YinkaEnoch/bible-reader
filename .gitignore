@@ -24,5 +24,6 @@ dist-ssr
 *.sw?
 
 .scratch
-android
+.tmp
+.tmp/
 *.apk

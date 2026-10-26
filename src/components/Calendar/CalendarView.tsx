@@ -25,6 +25,7 @@ interface CalendarViewProps {
   onPrevMonth: () => void;
   onNextMonth: () => void;
   onGoToToday: () => void;
+  onOpenReadingView: (passageIndex?: number) => void;
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -37,6 +38,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onPrevMonth,
   onNextMonth,
   onGoToToday,
+  onOpenReadingView,
 }) => {
   const [viewMode, setViewMode] = useState<"grid" | "week">("grid");
 
@@ -287,7 +289,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           >
             <div className="preview-passages-list">
               {selectedReadings.map((p, idx) => (
-                <div key={idx} className="passage-card-item">
+                <div
+                  key={idx}
+                  className="passage-card-item"
+                  onClick={() => onOpenReadingView(idx)}
+                  title={`Click to read ${p.book} ${p.chapters}`}
+                >
                   <div className="passage-card-info">
                     <div className="passage-num-badge">{idx + 1}</div>
                     <div>
@@ -299,9 +306,28 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       )}
                     </div>
                   </div>
+                  <ChevronRight size={18} color="var(--accent-gold)" />
                 </div>
               ))}
             </div>
+
+            <button
+              onClick={() => onOpenReadingView(0)}
+              className="btn-primary"
+              style={{
+                width: "100%",
+                fontSize: "0.95rem",
+                marginTop: "0.25rem",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.5rem",
+              }}
+            >
+              <BookOpen size={18} />
+              <span>Read Scripture Passages</span>
+              <ChevronRight size={18} />
+            </button>
           </div>
         ) : (
           <div

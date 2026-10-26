@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import bibleDataRaw from '../data/bible-readings.json';
 import type { BibleReadingsMap, ReadingStatusMap, Passage } from '../types';
 import { formatDateKey, parseDateKey } from '../lib/dateUtils';
+import { getVerses } from '../data/bible-text';
 
 const bibleData = bibleDataRaw as BibleReadingsMap;
 
@@ -40,9 +41,56 @@ export function useReadings() {
 
   const selectedDateStr = useMemo(() => formatDateKey(selectedDate), [selectedDate]);
 
-  const currentReadings = useMemo<Passage[]>(() => {
+  const rawReadings = useMemo<Passage[]>(() => {
     return bibleData[selectedDateStr] || [];
   }, [selectedDateStr]);
+
+  // Cache of hydrated passages by dateKey
+  const [hydratedMap, setHydratedMap] = useState<Record<string, Passage[]>>({});
+  const [isLoadingVerses, setIsLoadingVerses] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (rawReadings.length === 0) {
+      setIsLoadingVerses(false);
+      return;
+    }
+
+    if (hydratedMap[selectedDateStr]) {
+      setIsLoadingVerses(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoadingVerses(true);
+
+    Promise.all(
+      rawReadings.map(async (passage) => {
+        const versesText = await getVerses(passage.book, passage.chapters);
+        return { ...passage, versesText };
+      }),
+    )
+      .then((hydrated) => {
+        if (!cancelled) {
+          setHydratedMap((prev) => ({ ...prev, [selectedDateStr]: hydrated }));
+          setIsLoadingVerses(false);
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to hydrate Bible verses:', err);
+        if (!cancelled) {
+          setHydratedMap((prev) => ({ ...prev, [selectedDateStr]: rawReadings }));
+          setIsLoadingVerses(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [rawReadings, selectedDateStr, hydratedMap]);
+
+  const currentReadings = useMemo<Passage[]>(() => {
+    return hydratedMap[selectedDateStr] || rawReadings;
+  }, [hydratedMap, selectedDateStr, rawReadings]);
 
   const isSelectedCompleted = useMemo(() => {
     return Boolean(completedMap[selectedDateStr]);
@@ -121,6 +169,7 @@ export function useReadings() {
     selectedDateStr,
     currentMonth,
     currentReadings,
+    isLoadingVerses,
     isSelectedCompleted,
     completedMap,
     stats,
