@@ -1,34 +1,35 @@
 {
-  "name": "bible-reader",
-  "private": true,
-  "version": "1.0.0",
-  "type": "module",
-  "scripts": {
-    "sync:version": "node scripts/sync-version.mjs",
-    "predev": "npm run sync:version",
-    "dev": "vite",
-    "prebuild": "npm run sync:version",
-    "build": "tsc -b && vite build",
-    "lint": "oxlint",
-    "preview": "vite preview",
-    "cap:sync": "npm run build && npx cap sync",
-    "cap:open": "npx cap open android"
-  },
-  "dependencies": {
-    "@capacitor/core": "^7.0.1",
-    "lucide-react": "^1.28.0",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8"
-  },
-  "devDependencies": {
-    "@capacitor/android": "^7.0.1",
-    "@capacitor/cli": "^7.0.1",
-    "@types/node": "^24.13.3",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.4",
-    "oxlint": "^1.75.0",
-    "typescript": "~6.0.2",
-    "vite": "^8.2.0"
-  }
+	"name": "bible-reader",
+	"private": true,
+	"version": "0.3.0",
+	"type": "module",
+	"scripts": {
+		"sync:version": "node scripts/sync-version.mjs",
+		"predev": "npm run sync:version",
+		"dev": "vite",
+		"prebuild": "npm run sync:version",
+		"build": "tsc -b && vite build",
+		"lint": "oxlint",
+		"preview": "vite preview",
+		"cap:sync": "npm run build && npx cap sync",
+		"cap:open": "npx cap open android",
+		"build:apk": "./build-apk.sh"
+	},
+	"dependencies": {
+		"@capacitor/core": "^7.0.1",
+		"lucide-react": "^1.28.0",
+		"react": "^19.2.8",
+		"react-dom": "^19.2.8"
+	},
+	"devDependencies": {
+		"@capacitor/android": "^7.0.1",
+		"@capacitor/cli": "^7.0.1",
+		"@types/node": "^24.13.3",
+		"@types/react": "^19.2.17",
+		"@types/react-dom": "^19.2.3",
+		"@vitejs/plugin-react": "^6.0.4",
+		"oxlint": "^1.75.0",
+		"typescript": "~6.0.2",
+		"vite": "^8.2.0"
+	}
 }

@@ -8,4 +8,11 @@ disconnect:
 	adb disconnect
 
 build:
-	npm run cap:sync
+	./build-apk.sh
+
+
+build_clean:
+	./build-apk.sh --clean
+
+clean_apk:
+	rm -rf *.apk
