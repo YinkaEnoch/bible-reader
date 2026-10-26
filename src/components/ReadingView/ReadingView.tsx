@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { Capacitor } from "@capacitor/core";
+import { Share } from "@capacitor/share";
 import {
 	ArrowLeft,
 	ChevronLeft,
@@ -149,20 +151,49 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 		[showToast],
 	);
 
-	/** Share a verse via Web Share API, falling back to clipboard copy */
+	/** Share a verse via Capacitor Share (native Android/iOS) or Web Share API, falling back to clipboard copy */
 	const shareVerse = useCallback(
 		async (text: string, refStr: string) => {
 			const content = `"${text}" — ${refStr}`;
-			if (navigator.share) {
-				try {
-					await navigator.share({ text: content });
-				} catch {
-					// user cancelled or share failed — silently ignore
+			try {
+				if (Capacitor.isNativePlatform()) {
+					await Share.share({
+						title: refStr,
+						text: content,
+						dialogTitle: `Share ${refStr}`,
+					});
+					return;
 				}
-			} else {
+
+				if (typeof navigator !== "undefined" && navigator.share) {
+					await navigator.share({
+						title: refStr,
+						text: content,
+					});
+					return;
+				}
+
 				// Fallback: copy to clipboard when Web Share is unavailable (e.g. desktop)
 				await navigator.clipboard.writeText(content);
 				showToast("Verse copied to clipboard!");
+			} catch (err: unknown) {
+				const errMsg = err instanceof Error ? err.message : String(err);
+				// User dismissed / cancelled share sheet — ignore silently
+				if (
+					(err instanceof Error && err.name === "AbortError") ||
+					errMsg.toLowerCase().includes("cancel") ||
+					errMsg.toLowerCase().includes("abort")
+				) {
+					return;
+				}
+
+				// Fallback to clipboard if sharing threw an unexpected error
+				try {
+					await navigator.clipboard.writeText(content);
+					showToast("Verse copied to clipboard!");
+				} catch {
+					// User denied clipboard permission or clipboard failed
+				}
 			}
 		},
 		[showToast],
