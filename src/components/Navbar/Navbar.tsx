@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sun, Moon, WifiOff } from 'lucide-react';
+import { Sun, Moon, WifiOff, Info } from 'lucide-react';
 import type { ThemeMode } from '../../types';
 import { APP_VERSION } from '../../version';
 import { AppLogo } from '../Logo/AppLogo';
@@ -8,12 +8,14 @@ interface NavbarProps {
   theme: ThemeMode;
   onToggleTheme: () => void;
   isOffline: boolean;
+  onOpenAbout?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   theme,
   onToggleTheme,
   isOffline,
+  onOpenAbout,
 }) => {
   return (
     <header className="navbar">
@@ -27,15 +29,29 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          <button
-            onClick={onToggleTheme}
-            className="btn-icon"
-            style={{ borderRadius: '9999px' }}
-            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
-            aria-label="Toggle Theme"
-          >
-            {theme === 'dark' ? <Sun size={18} color="#fbbf24" /> : <Moon size={18} color="#334155" />}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            {onOpenAbout && (
+              <button
+                onClick={onOpenAbout}
+                className="btn-icon"
+                style={{ borderRadius: '9999px' }}
+                title="About Bible Reader"
+                aria-label="About Bible Reader"
+              >
+                <Info size={18} color="var(--text-secondary)" />
+              </button>
+            )}
+
+            <button
+              onClick={onToggleTheme}
+              className="btn-icon"
+              style={{ borderRadius: '9999px' }}
+              title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+              aria-label="Toggle Theme"
+            >
+              {theme === 'dark' ? <Sun size={18} color="#fbbf24" /> : <Moon size={18} color="#334155" />}
+            </button>
+          </div>
         </div>
 
         {/* Bottom Row: Subtitle & Offline Status */}

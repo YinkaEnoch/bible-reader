@@ -1051,6 +1051,130 @@ html.dark .calendar-cell.selected,
 	justify-content: center;
 }
 
+.modal-card-about {
+	max-width: 480px;
+	width: 100%;
+	max-height: 85vh;
+	overflow-y: auto;
+	background-color: var(--bg-secondary);
+	border: 1px solid var(--border-color);
+	border-radius: var(--radius-xl);
+	padding: 1.5rem;
+	display: flex;
+	flex-direction: column;
+	gap: 1.15rem;
+	box-shadow: var(--shadow-lg);
+	position: relative;
+}
+
+.modal-nav-tabs {
+	display: flex;
+	background-color: var(--bg-tertiary);
+	border: 1px solid var(--border-color);
+	border-radius: var(--radius-md);
+	padding: 3px;
+	gap: 3px;
+}
+
+.modal-nav-tab {
+	flex: 1;
+	font-size: 0.75rem;
+	font-weight: 700;
+	padding: 0.45rem 0.5rem;
+	border-radius: var(--radius-sm);
+	border: none;
+	background: transparent;
+	color: var(--text-muted);
+	cursor: pointer;
+	text-align: center;
+	transition: background-color 0.2s ease, color 0.2s ease;
+	white-space: nowrap;
+}
+
+.modal-nav-tab.active {
+	background-color: var(--bg-secondary);
+	color: var(--accent-gold);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.developer-card {
+	background: linear-gradient(
+		135deg,
+		var(--bg-tertiary) 0%,
+		rgba(196, 148, 41, 0.08) 100%
+	);
+	border: 1px solid var(--border-color);
+	border-radius: var(--radius-lg);
+	padding: 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+}
+
+.developer-website-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	padding: 0.55rem 0.9rem;
+	border-radius: var(--radius-md);
+	background-color: var(--bg-secondary);
+	border: 1px solid var(--accent-gold);
+	color: var(--accent-gold);
+	font-size: 0.82rem;
+	font-weight: 600;
+	text-decoration: none;
+	transition: background-color 0.2s ease, transform 0.15s ease;
+}
+
+.developer-website-btn:hover {
+	background-color: var(--accent-gold);
+	color: var(--bg-primary);
+}
+
+.info-block {
+	background-color: var(--bg-tertiary);
+	border: 1px solid var(--border-subtle);
+	border-radius: var(--radius-md);
+	padding: 0.85rem 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+}
+
+.info-block h4 {
+	font-size: 0.85rem;
+	font-weight: 700;
+	color: var(--text-primary);
+	margin: 0;
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.info-block p {
+	font-size: 0.78rem;
+	line-height: 1.45;
+	color: var(--text-secondary);
+	margin: 0;
+}
+
+.footer-link-btn {
+	background: none;
+	border: none;
+	color: var(--text-muted);
+	font-size: 0.75rem;
+	font-weight: 600;
+	cursor: pointer;
+	padding: 0.2rem 0.4rem;
+	transition: color 0.15s ease;
+	text-decoration: none;
+}
+
+.footer-link-btn:hover {
+	color: var(--accent-gold);
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
 	width: 6px;

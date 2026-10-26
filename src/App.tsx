@@ -8,6 +8,7 @@ import { useRandomScripture } from "./hooks/useRandomScripture";
 import { Navbar } from "./components/Navbar/Navbar";
 import { CalendarView } from "./components/Calendar/CalendarView";
 import { ReadingView } from "./components/ReadingView/ReadingView";
+import { AboutModal, type AboutTab } from "./components/About/AboutModal";
 import type { PaperTheme } from "./types";
 
 export function App() {
@@ -38,16 +39,27 @@ export function App() {
 
   const [activeView, setActiveView] = useState<"calendar" | "reading">("calendar");
   const [selectedPassageIndex, setSelectedPassageIndex] = useState<number>(0);
+  const [aboutModalOpen, setAboutModalOpen] = useState<boolean>(false);
+  const [aboutModalTab, setAboutModalTab] = useState<AboutTab>("about");
+
+  const handleOpenAbout = (tab: AboutTab = "about") => {
+    setAboutModalTab(tab);
+    setAboutModalOpen(true);
+  };
 
   // Intercept the Android hardware back button.
-  // When the reading view is open, go back to the calendar instead of exiting.
+  // When a modal or reading view is open, dismiss/navigate back instead of exiting.
   const handleBackButton = useCallback(() => {
+    if (aboutModalOpen) {
+      setAboutModalOpen(false);
+      return true; // event handled — don't exit
+    }
     if (activeView === "reading") {
       setActiveView("calendar");
       return true; // event handled — don't exit
     }
     return false; // let Capacitor's default "exit app" run
-  }, [activeView]);
+  }, [aboutModalOpen, activeView]);
 
   useAndroidBackButton(handleBackButton);
 
@@ -91,6 +103,7 @@ export function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
         isOffline={isOffline}
+        onOpenAbout={() => handleOpenAbout("about")}
       />
 
       {/* Main Viewport Container */}
@@ -105,21 +118,84 @@ export function App() {
         }}
       >
         {activeView === "calendar" ? (
-          <CalendarView
-            currentMonth={currentMonth}
-            selectedDate={selectedDate}
-            readingsData={bibleData}
-            completedMap={completedMap}
-            isPassageRead={isPassageRead}
-            onSelectDate={(date) => selectDate(date)}
-            onPrevMonth={prevMonth}
-            onNextMonth={nextMonth}
-            onGoToToday={goToToday}
-            onOpenReadingView={handleOpenReadingView}
-            randomScripture={randomScripture}
-            onRefreshScripture={refreshScripture}
-            isLoadingScripture={isLoadingScripture}
-          />
+          <>
+            <CalendarView
+              currentMonth={currentMonth}
+              selectedDate={selectedDate}
+              readingsData={bibleData}
+              completedMap={completedMap}
+              isPassageRead={isPassageRead}
+              onSelectDate={(date) => selectDate(date)}
+              onPrevMonth={prevMonth}
+              onNextMonth={nextMonth}
+              onGoToToday={goToToday}
+              onOpenReadingView={handleOpenReadingView}
+              randomScripture={randomScripture}
+              onRefreshScripture={refreshScripture}
+              isLoadingScripture={isLoadingScripture}
+            />
+            <footer
+              style={{
+                marginTop: "1.5rem",
+                paddingTop: "1.25rem",
+                borderTop: "1px solid var(--border-subtle)",
+                textAlign: "center",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.5rem",
+                alignItems: "center",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  gap: "0.6rem",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => handleOpenAbout("about")}
+                  className="footer-link-btn"
+                >
+                  About
+                </button>
+                <span style={{ color: "var(--border-color)", fontSize: "0.7rem" }}>•</span>
+                <button
+                  type="button"
+                  onClick={() => handleOpenAbout("privacy")}
+                  className="footer-link-btn"
+                >
+                  Privacy Policy
+                </button>
+                <span style={{ color: "var(--border-color)", fontSize: "0.7rem" }}>•</span>
+                <button
+                  type="button"
+                  onClick={() => handleOpenAbout("credits")}
+                  className="footer-link-btn"
+                >
+                  Credits
+                </button>
+              </div>
+              <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                Developed by{" "}
+                <a
+                  href="https://yinkaenoch.netlify.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    color: "var(--accent-gold)",
+                    textDecoration: "none",
+                    fontWeight: 600,
+                  }}
+                >
+                  Yinka Enoch Adedokun
+                </a>
+              </div>
+            </footer>
+          </>
         ) : (
           <ReadingView
             selectedDate={selectedDate}
@@ -138,6 +214,13 @@ export function App() {
           />
         )}
       </main>
+
+      {/* About, Privacy & Credits Modal */}
+      <AboutModal
+        isOpen={aboutModalOpen}
+        onClose={() => setAboutModalOpen(false)}
+        initialTab={aboutModalTab}
+      />
     </div>
   );
 }
