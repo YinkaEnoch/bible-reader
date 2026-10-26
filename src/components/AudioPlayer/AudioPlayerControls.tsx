@@ -128,7 +128,6 @@ export const AudioPlayerControls: React.FC<AudioPlayerControlsProps> = ({
 					title="Restart from Verse 1"
 				>
 					<RotateCcw size={17} />
-					<span className="audio-btn-tooltip">Restart</span>
 				</button>
 
 				{/* Skip Previous Verse */}
