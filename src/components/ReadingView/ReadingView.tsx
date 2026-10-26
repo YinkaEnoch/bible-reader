@@ -10,12 +10,14 @@ import {
 	BookOpen,
 	Sparkles,
 	Palette,
+	BookText,
 } from "lucide-react";
 import type {
 	Passage,
 	ReaderFontSize,
 	PaperTheme,
 	FontStyle,
+	BibleVersion,
 } from "../../types";
 import { formatFullDate } from "../../lib/dateUtils";
 
@@ -24,6 +26,8 @@ interface ReadingViewProps {
 	passages: Passage[];
 	paperTheme: PaperTheme;
 	onSelectPaperTheme: (theme: PaperTheme) => void;
+	bibleVersion: BibleVersion;
+	onSelectBibleVersion: (version: BibleVersion) => void;
 	onBackToCalendar?: () => void;
 	onPrevDay: () => void;
 	onNextDay: () => void;
@@ -36,6 +40,8 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 	passages,
 	paperTheme,
 	onSelectPaperTheme,
+	bibleVersion,
+	onSelectBibleVersion,
 	onBackToCalendar,
 	onPrevDay,
 	onNextDay,
@@ -257,6 +263,29 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 					</button>
 				</div>
 
+				{/* Bible Version Switcher */}
+				<div className="paper-themes-row">
+					<BookText
+						size={14}
+						color="var(--text-muted)"
+						style={{ margin: "0 4px" }}
+					/>
+					{(["KJV", "WEB"] as BibleVersion[]).map((v) => (
+						<button
+							key={v}
+							onClick={() => onSelectBibleVersion(v)}
+							className={`paper-btn ${bibleVersion === v ? "active" : ""}`}
+							title={
+								v === "KJV"
+									? "King James Version (public domain)"
+									: "World English Bible (public domain)"
+							}
+						>
+							{v}
+						</button>
+					))}
+				</div>
+
 				{/* Font Style & Size */}
 				<div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
 					<button
@@ -344,9 +373,17 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 										width: "100%",
 									}}
 								>
-									<span className="badge-pill">
-										{passage.category || "Scripture"}
-									</span>
+									<div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+										<span className="badge-pill">
+											{passage.category || "Scripture"}
+										</span>
+										<span
+											className="badge-pill"
+											style={{ fontSize: "0.65rem", opacity: 0.75 }}
+										>
+											{bibleVersion}
+										</span>
+									</div>
 									<Bookmark
 										size={16}
 										color="var(--accent-gold)"

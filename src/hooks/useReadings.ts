@@ -1,14 +1,15 @@
 import { useState, useMemo, useEffect } from 'react';
 import bibleDataRaw from '../data/bible-readings.json';
-import type { BibleReadingsMap, ReadingStatusMap, Passage } from '../types';
+import type { BibleReadingsMap, ReadingStatusMap, Passage, BibleVersion } from '../types';
 import { formatDateKey, parseDateKey } from '../lib/dateUtils';
 import { getVerses } from '../data/bible-text';
+import { getWEBVerses } from '../data/bible-text-web';
 
 const bibleData = bibleDataRaw as BibleReadingsMap;
 
 const LOCAL_STORAGE_KEY = 'bible_reader_completed_v1';
 
-export function useReadings() {
+export function useReadings(bibleVersion: BibleVersion = 'KJV') {
   // Determine initial date. If current today date has reading, use today.
   // Default to August 13, 2026 if today is in a different year.
   const [selectedDate, setSelectedDate] = useState<Date>(() => {
@@ -45,9 +46,12 @@ export function useReadings() {
     return bibleData[selectedDateStr] || [];
   }, [selectedDateStr]);
 
-  // Cache of hydrated passages by dateKey
+  // Cache of hydrated passages by "dateKey:version" compound key
   const [hydratedMap, setHydratedMap] = useState<Record<string, Passage[]>>({});
   const [isLoadingVerses, setIsLoadingVerses] = useState<boolean>(false);
+
+  // Compound cache key so switching version forces re-hydration
+  const hydratedKey = `${selectedDateStr}:${bibleVersion}`;
 
   useEffect(() => {
     if (rawReadings.length === 0) {
@@ -55,7 +59,7 @@ export function useReadings() {
       return;
     }
 
-    if (hydratedMap[selectedDateStr]) {
+    if (hydratedMap[hydratedKey]) {
       setIsLoadingVerses(false);
       return;
     }
@@ -63,22 +67,24 @@ export function useReadings() {
     let cancelled = false;
     setIsLoadingVerses(true);
 
+    const fetchVerses = bibleVersion === 'WEB' ? getWEBVerses : getVerses;
+
     Promise.all(
       rawReadings.map(async (passage) => {
-        const versesText = await getVerses(passage.book, passage.chapters);
+        const versesText = await fetchVerses(passage.book, passage.chapters);
         return { ...passage, versesText };
       }),
     )
       .then((hydrated) => {
         if (!cancelled) {
-          setHydratedMap((prev) => ({ ...prev, [selectedDateStr]: hydrated }));
+          setHydratedMap((prev) => ({ ...prev, [hydratedKey]: hydrated }));
           setIsLoadingVerses(false);
         }
       })
       .catch((err) => {
         console.warn('Failed to hydrate Bible verses:', err);
         if (!cancelled) {
-          setHydratedMap((prev) => ({ ...prev, [selectedDateStr]: rawReadings }));
+          setHydratedMap((prev) => ({ ...prev, [hydratedKey]: rawReadings }));
           setIsLoadingVerses(false);
         }
       });
@@ -86,11 +92,11 @@ export function useReadings() {
     return () => {
       cancelled = true;
     };
-  }, [rawReadings, selectedDateStr, hydratedMap]);
+  }, [rawReadings, hydratedKey, bibleVersion, hydratedMap]);
 
   const currentReadings = useMemo<Passage[]>(() => {
-    return hydratedMap[selectedDateStr] || rawReadings;
-  }, [hydratedMap, selectedDateStr, rawReadings]);
+    return hydratedMap[hydratedKey] || rawReadings;
+  }, [hydratedMap, hydratedKey, rawReadings]);
 
   const isSelectedCompleted = useMemo(() => {
     return Boolean(completedMap[selectedDateStr]);
