@@ -8,8 +8,9 @@ import {
   Sparkles,
   Grid,
   Columns,
+  Check,
 } from "lucide-react";
-import type { BibleReadingsMap } from "../../types";
+import type { BibleReadingsMap, ReadingStatusMap } from "../../types";
 import {
   getCalendarGridDays,
   formatMonthYear,
@@ -21,6 +22,8 @@ interface CalendarViewProps {
   currentMonth: Date;
   selectedDate: Date;
   readingsData: BibleReadingsMap;
+  completedMap?: ReadingStatusMap;
+  isPassageRead?: (dateStr: string, passageIndex: number) => boolean;
   onSelectDate: (date: Date) => void;
   onPrevMonth: () => void;
   onNextMonth: () => void;
@@ -34,6 +37,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   currentMonth,
   selectedDate,
   readingsData,
+  completedMap,
+  isPassageRead,
   onSelectDate,
   onPrevMonth,
   onNextMonth,
@@ -46,7 +51,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     currentMonth,
     selectedDate,
     readingsData,
-    {},
+    completedMap || {},
   );
   const selectedDateStr = formatDateKey(selectedDate);
   const selectedReadings = readingsData[selectedDateStr] || [];
@@ -205,26 +210,32 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               isToday,
               isSelected,
               hasReading,
+              isCompleted,
             } = dayItem;
 
             let cellClass = "calendar-cell";
             if (!isCurrentMonth) cellClass += " muted";
             if (isToday) cellClass += " today";
             if (isSelected) cellClass += " selected";
+            if (isCompleted) cellClass += " completed";
 
             return (
               <button
                 key={idx}
                 onClick={() => onSelectDate(date)}
                 className={cellClass}
-                aria-label={`${formatFullDate(date)}${hasReading ? ", has reading" : ""}`}
+                aria-label={`${formatFullDate(date)}${hasReading ? ", has reading" : ""}${isCompleted ? ", completed" : ""}`}
               >
                 <div className="cell-top-row">
                   <span className="cell-day-num">{dayNumber}</span>
                 </div>
 
                 <div className="cell-dot-row">
-                  {!hasReading ? <span className="no-reading-dot" /> : null}
+                  {isCompleted ? (
+                    <span className="completed-dot" title="All readings completed" />
+                  ) : !hasReading ? (
+                    <span className="no-reading-dot" />
+                  ) : null}
                 </div>
               </button>
             );
@@ -288,27 +299,62 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}
           >
             <div className="preview-passages-list">
-              {selectedReadings.map((p, idx) => (
-                <div
-                  key={idx}
-                  className="passage-card-item"
-                  onClick={() => onOpenReadingView(idx)}
-                  title={`Click to read ${p.book} ${p.chapters}`}
-                >
-                  <div className="passage-card-info">
-                    <div className="passage-num-badge">{idx + 1}</div>
-                    <div>
-                      <div className="passage-book-title">
-                        {p.book} {p.chapters}
+              {selectedReadings.map((p, idx) => {
+                const isRead = isPassageRead
+                  ? isPassageRead(selectedDateStr, idx)
+                  : false;
+
+                return (
+                  <div
+                    key={idx}
+                    className={`passage-card-item ${isRead ? "passage-card-item--read" : ""}`}
+                    onClick={() => onOpenReadingView(idx)}
+                    title={`Click to read ${p.book} ${p.chapters}`}
+                  >
+                    <div className="passage-card-info">
+                      <div
+                        className={`passage-num-badge ${isRead ? "passage-num-badge--read" : ""}`}
+                      >
+                        {isRead ? <Check size={16} /> : idx + 1}
                       </div>
-                      {p.category && (
-                        <div className="passage-category">{p.category}</div>
+                      <div>
+                        <div
+                          className={`passage-book-title ${isRead ? "passage-book-title--read" : ""}`}
+                        >
+                          {p.book} {p.chapters}
+                        </div>
+                        {p.category && (
+                          <div className="passage-category">{p.category}</div>
+                        )}
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                      }}
+                    >
+                      {isRead && (
+                        <span
+                          className="badge-pill"
+                          style={{
+                            backgroundColor: "var(--status-success-bg)",
+                            color: "var(--status-success)",
+                            borderColor: "var(--status-success-border)",
+                            fontSize: "0.7rem",
+                            padding: "0.2rem 0.55rem",
+                            fontWeight: 700,
+                          }}
+                        >
+                          Read
+                        </span>
                       )}
+                      <ChevronRight size={18} color="var(--accent-gold)" />
                     </div>
                   </div>
-                  <ChevronRight size={18} color="var(--accent-gold)" />
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <button

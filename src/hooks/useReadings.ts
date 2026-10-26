@@ -7,7 +7,33 @@ import { getWEBVerses } from '../data/bible-text-web';
 
 const bibleData = bibleDataRaw as BibleReadingsMap;
 
-const LOCAL_STORAGE_KEY = 'bible_reader_completed_v1';
+const PASSAGE_STORAGE_KEY = 'bible_reader_passage_read_v1';
+
+function getStoredPassageProgress(): { year: number; passages: Record<string, boolean> } {
+  const currentYear = new Date().getFullYear();
+  try {
+    const raw = localStorage.getItem(PASSAGE_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Annual reset check: If stored year matches current calendar year, preserve readings.
+      // If year rolled over to a new year (Jan 1st of new year), reset progress.
+      if (typeof parsed?.year === 'number' && parsed.year === currentYear) {
+        return {
+          year: currentYear,
+          passages: parsed.passages || {},
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to parse passage progress from localStorage', err);
+  }
+  // Reset for the new year
+  const fresh = { year: currentYear, passages: {} };
+  try {
+    localStorage.setItem(PASSAGE_STORAGE_KEY, JSON.stringify(fresh));
+  } catch {}
+  return fresh;
+}
 
 export function useReadings(bibleVersion: BibleVersion = 'KJV') {
   // Determine initial date. If current today date has reading, use today.
@@ -22,23 +48,78 @@ export function useReadings(bibleVersion: BibleVersion = 'KJV') {
 
   const [currentMonth, setCurrentMonth] = useState<Date>(() => new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
 
-  // Completed status map from LocalStorage
-  const [completedMap, setCompletedMap] = useState<ReadingStatusMap>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
+  // Passage read status map from LocalStorage with annual Jan 1st reset
+  const [passageReadState, setPassageReadState] = useState<{
+    year: number;
+    passages: Record<string, boolean>;
+  }>(getStoredPassageProgress);
 
+  // Periodically & on window focus check if calendar year rolled over past Jan 1st
   useEffect(() => {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(completedMap));
-    } catch (e) {
-      console.warn('Failed to save reading progress to localStorage', e);
+    const checkYearReset = () => {
+      const currentYear = new Date().getFullYear();
+      setPassageReadState((prev) => {
+        if (prev.year !== currentYear) {
+          const fresh = { year: currentYear, passages: {} };
+          try {
+            localStorage.setItem(PASSAGE_STORAGE_KEY, JSON.stringify(fresh));
+          } catch {}
+          return fresh;
+        }
+        return prev;
+      });
+    };
+
+    window.addEventListener('focus', checkYearReset);
+    const timer = setInterval(checkYearReset, 60000);
+    return () => {
+      window.removeEventListener('focus', checkYearReset);
+      clearInterval(timer);
+    };
+  }, []);
+
+  const passageReadMap = passageReadState.passages;
+
+  const isPassageRead = (dateStr: string, passageIndex: number): boolean => {
+    return Boolean(passageReadMap[`${dateStr}:${passageIndex}`]);
+  };
+
+  const togglePassageRead = (dateStr: string, passageIndex: number) => {
+    const key = `${dateStr}:${passageIndex}`;
+    const currentYear = new Date().getFullYear();
+    setPassageReadState((prev) => {
+      const yearToUse = prev.year === currentYear ? prev.year : currentYear;
+      const basePassages = prev.year === currentYear ? prev.passages : {};
+      const nextPassages = {
+        ...basePassages,
+        [key]: !basePassages[key],
+      };
+      const updated = {
+        year: yearToUse,
+        passages: nextPassages,
+      };
+      try {
+        localStorage.setItem(PASSAGE_STORAGE_KEY, JSON.stringify(updated));
+      } catch (e) {
+        console.warn('Failed to save passage progress to localStorage', e);
+      }
+      return updated;
+    });
+  };
+
+  // Derive completed days from passageReadMap: a day is complete if all assigned passages are read
+  const completedMap = useMemo<ReadingStatusMap>(() => {
+    const map: ReadingStatusMap = {};
+    for (const [dateStr, passages] of Object.entries(bibleData)) {
+      if (passages && passages.length > 0) {
+        const allRead = passages.every((_, idx) => Boolean(passageReadMap[`${dateStr}:${idx}`]));
+        if (allRead) {
+          map[dateStr] = true;
+        }
+      }
     }
-  }, [completedMap]);
+    return map;
+  }, [passageReadMap]);
 
   const selectedDateStr = useMemo(() => formatDateKey(selectedDate), [selectedDate]);
 
@@ -103,10 +184,28 @@ export function useReadings(bibleVersion: BibleVersion = 'KJV') {
   }, [completedMap, selectedDateStr]);
 
   const toggleComplete = (dateStr: string = selectedDateStr) => {
-    setCompletedMap((prev) => ({
-      ...prev,
-      [dateStr]: !prev[dateStr],
-    }));
+    const passagesForDate = bibleData[dateStr] || [];
+    const isCurrentlyComplete = Boolean(completedMap[dateStr]);
+    const targetStatus = !isCurrentlyComplete;
+    const currentYear = new Date().getFullYear();
+
+    setPassageReadState((prev) => {
+      const yearToUse = prev.year === currentYear ? prev.year : currentYear;
+      const basePassages = prev.year === currentYear ? { ...prev.passages } : {};
+      passagesForDate.forEach((_, idx) => {
+        basePassages[`${dateStr}:${idx}`] = targetStatus;
+      });
+      const updated = {
+        year: yearToUse,
+        passages: basePassages,
+      };
+      try {
+        localStorage.setItem(PASSAGE_STORAGE_KEY, JSON.stringify(updated));
+      } catch (e) {
+        console.warn('Failed to save passage progress to localStorage', e);
+      }
+      return updated;
+    });
   };
 
   const selectDate = (date: Date) => {
@@ -178,6 +277,9 @@ export function useReadings(bibleVersion: BibleVersion = 'KJV') {
     isLoadingVerses,
     isSelectedCompleted,
     completedMap,
+    passageReadMap,
+    isPassageRead,
+    togglePassageRead,
     stats,
     selectDate,
     setCurrentMonth,

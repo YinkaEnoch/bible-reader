@@ -14,6 +14,13 @@ export type BibleReadingsMap = Record<string, Passage[]>;
 
 export type ReadingStatusMap = Record<string, boolean>;
 
+export type PassageReadMap = Record<string, boolean>;
+
+export interface PassageReadStorage {
+  year: number;
+  passages: PassageReadMap;
+}
+
 export type PaperTheme = 'parchment' | 'sepia' | 'midnight' | 'oled';
 
 export type BibleVersion = 'KJV' | 'WEB';

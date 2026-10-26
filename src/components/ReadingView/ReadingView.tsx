@@ -8,7 +8,6 @@ import {
 	Volume2,
 	VolumeX,
 	Type,
-	Bookmark,
 	BookOpen,
 	Sparkles,
 	Palette,
@@ -16,6 +15,8 @@ import {
 	Copy,
 	Share2,
 	Check,
+	CheckCircle2,
+	Circle,
 } from "lucide-react";
 import type {
 	Passage,
@@ -24,7 +25,7 @@ import type {
 	FontStyle,
 	BibleVersion,
 } from "../../types";
-import { formatFullDate } from "../../lib/dateUtils";
+import { formatFullDate, formatDateKey } from "../../lib/dateUtils";
 
 interface ReadingViewProps {
 	selectedDate: Date;
@@ -38,6 +39,8 @@ interface ReadingViewProps {
 	onNextDay: () => void;
 	initialPassageIndex?: number;
 	isLoadingVerses?: boolean;
+	isPassageRead?: (dateStr: string, passageIndex: number) => boolean;
+	onTogglePassageRead?: (dateStr: string, passageIndex: number) => void;
 }
 
 export const ReadingView: React.FC<ReadingViewProps> = ({
@@ -52,7 +55,11 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 	onNextDay,
 	initialPassageIndex = 0,
 	isLoadingVerses = false,
+	isPassageRead,
+	onTogglePassageRead,
 }) => {
+	const [activePassageIndex, setActivePassageIndex] =
+		useState<number>(initialPassageIndex);
 	const [fontSize, setFontSize] = useState<ReaderFontSize>("md");
 	const [fontStyle, setFontStyle] = useState<FontStyle>("serif");
 	const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
@@ -62,6 +69,21 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 	const [toastMessage, setToastMessage] = useState<string | null>(null);
 	const [toastVisible, setToastVisible] = useState<boolean>(false);
 	const [scrollProgress, setScrollProgress] = useState<number>(0);
+
+	// Sync activePassageIndex with initialPassageIndex and date changes
+	useEffect(() => {
+		setActivePassageIndex(initialPassageIndex || 0);
+	}, [initialPassageIndex, selectedDate]);
+
+	const safeIndex =
+		passages.length > 0
+			? Math.min(Math.max(0, activePassageIndex), passages.length - 1)
+			: 0;
+	const currentPassage = passages[safeIndex];
+	const selectedDateStr = formatDateKey(selectedDate);
+	const isCurrentPassageRead = isPassageRead
+		? isPassageRead(selectedDateStr, safeIndex)
+		: false;
 
 	useEffect(() => {
 		setSpeechSupported("speechSynthesis" in window);
@@ -82,22 +104,22 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 				window.speechSynthesis.cancel();
 			}
 		};
-	}, [selectedDate]);
+	}, [selectedDate, safeIndex]);
 
-	useEffect(() => {
-		if (initialPassageIndex !== undefined && initialPassageIndex > 0) {
-			const timer = setTimeout(() => {
-				const el = document.getElementById(`passage-${initialPassageIndex}`);
-				if (el) {
-					el.scrollIntoView({ behavior: "smooth", block: "start" });
-				}
-			}, 150);
-			return () => clearTimeout(timer);
+	// Navigate cleanly between passages and scroll up to the passage top
+	const goToPassage = (newIndex: number) => {
+		if (newIndex < 0 || newIndex >= passages.length) return;
+		if (isSpeaking && "speechSynthesis" in window) {
+			window.speechSynthesis.cancel();
+			setIsSpeaking(false);
 		}
-	}, [initialPassageIndex, passages]);
+		setActivePassageIndex(newIndex);
+		setHighlightedVerse(null);
+		window.scrollTo({ top: 0, behavior: "smooth" });
+	};
 
 	const toggleSpeech = () => {
-		if (!speechSupported) return;
+		if (!speechSupported || !currentPassage) return;
 
 		if (isSpeaking) {
 			window.speechSynthesis.cancel();
@@ -105,18 +127,13 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 			return;
 		}
 
-		const fullText = passages
-			.map(
-				(p) =>
-					`${p.book} chapter ${p.chapters}. ${
-						p.versesText
-							?.map((v) => `Verse ${v.number}: ${v.text}`)
-							.join(" ") || ""
-					}`,
-			)
-			.join(". ");
+		const fullText = `${currentPassage.book} chapter ${currentPassage.chapters}. ${
+			currentPassage.versesText
+				?.map((v) => `Verse ${v.number}: ${v.text}`)
+				.join(" ") || ""
+		}`;
 
-		if (!fullText) return;
+		if (!fullText.trim()) return;
 
 		const utterance = new SpeechSynthesisUtterance(fullText);
 		utterance.rate = 0.95;
@@ -151,7 +168,7 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 		[showToast],
 	);
 
-	/** Share a verse via Capacitor Share (native Android/iOS) or Web Share API, falling back to clipboard copy */
+	/** Share a verse via Capacitor Share (native Android/iOS) or Web Share API */
 	const shareVerse = useCallback(
 		async (text: string, refStr: string) => {
 			const content = `"${text}" — ${refStr}`;
@@ -173,12 +190,10 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 					return;
 				}
 
-				// Fallback: copy to clipboard when Web Share is unavailable (e.g. desktop)
 				await navigator.clipboard.writeText(content);
 				showToast("Verse copied to clipboard!");
 			} catch (err: unknown) {
 				const errMsg = err instanceof Error ? err.message : String(err);
-				// User dismissed / cancelled share sheet — ignore silently
 				if (
 					(err instanceof Error && err.name === "AbortError") ||
 					errMsg.toLowerCase().includes("cancel") ||
@@ -187,12 +202,11 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 					return;
 				}
 
-				// Fallback to clipboard if sharing threw an unexpected error
 				try {
 					await navigator.clipboard.writeText(content);
 					showToast("Verse copied to clipboard!");
 				} catch {
-					// User denied clipboard permission or clipboard failed
+					// User denied clipboard permission
 				}
 			}
 		},
@@ -249,7 +263,13 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 
 				<div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
 					<button
-						onClick={onPrevDay}
+						onClick={() => {
+							if (isSpeaking && "speechSynthesis" in window) {
+								window.speechSynthesis.cancel();
+								setIsSpeaking(false);
+							}
+							onPrevDay();
+						}}
 						className="btn-icon"
 						style={{ width: "32px", height: "32px" }}
 						title="Previous Day"
@@ -266,7 +286,13 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 						Day
 					</span>
 					<button
-						onClick={onNextDay}
+						onClick={() => {
+							if (isSpeaking && "speechSynthesis" in window) {
+								window.speechSynthesis.cancel();
+								setIsSpeaking(false);
+							}
+							onNextDay();
+						}}
 						className="btn-icon"
 						style={{ width: "32px", height: "32px" }}
 						title="Next Day"
@@ -409,115 +435,230 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 				)}
 			</div>
 
-			{/* Passages List */}
-			{passages.length > 0 ? (
-				<div
-					style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}
-				>
-					{passages.map((passage, pIdx) => (
-						<article
-							key={pIdx}
-							id={`passage-${pIdx}`}
-							className="passage-article"
+			{/* Passage Quick-Jump Tabs (when multiple passages for the day) */}
+			{passages.length > 1 && (
+				<div className="passage-tabs">
+					{passages.map((p, pIdx) => {
+						const pRead = isPassageRead
+							? isPassageRead(selectedDateStr, pIdx)
+							: false;
+						const isActive = pIdx === safeIndex;
+						return (
+							<button
+								key={pIdx}
+								onClick={() => goToPassage(pIdx)}
+								className={`passage-tab-btn ${isActive ? "active" : ""} ${pRead ? "read" : ""}`}
+								title={`${p.book} ${p.chapters}${pRead ? " (Read)" : ""}`}
+							>
+								<span className="passage-tab-num">{pIdx + 1}</span>
+								<span className="passage-tab-title">
+									{p.book} {p.chapters}
+								</span>
+								{pRead && <Check size={12} className="passage-tab-check" />}
+							</button>
+						);
+					})}
+				</div>
+			)}
+
+			{/* Single Passage Article */}
+			{currentPassage ? (
+				<article className="passage-article">
+					{/* Passage Header */}
+					<div className="passage-header">
+						<div
+							style={{
+								display: "flex",
+								alignItems: "center",
+								justifyContent: "space-between",
+								width: "100%",
+								flexWrap: "wrap",
+								gap: "0.5rem",
+							}}
 						>
-							<div className="passage-header">
-								<div
-									style={{
-										display: "flex",
-										alignItems: "center",
-										justifyContent: "space-between",
-										width: "100%",
-									}}
+							<div
+								style={{
+									display: "flex",
+									alignItems: "center",
+									gap: "0.4rem",
+									flexWrap: "wrap",
+								}}
+							>
+								<span className="badge-pill">
+									{currentPassage.category || "Scripture"}
+								</span>
+								<span
+									className="badge-pill"
+									style={{ fontSize: "0.65rem", opacity: 0.75 }}
 								>
-									<div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-										<span className="badge-pill">
-											{passage.category || "Scripture"}
-										</span>
-										<span
-											className="badge-pill"
-											style={{ fontSize: "0.65rem", opacity: 0.75 }}
-										>
-											{bibleVersion}
-										</span>
-									</div>
-									<Bookmark
-										size={16}
-										color="var(--accent-gold)"
-										style={{ marginLeft: "auto" }}
-									/>
-								</div>
-								<h3>
-									{passage.book} {passage.chapters}
-								</h3>
+									{bibleVersion}
+								</span>
+								{passages.length > 1 && (
+									<span
+										className="badge-pill"
+										style={{ fontSize: "0.68rem", fontWeight: 700 }}
+									>
+										Passage {safeIndex + 1} of {passages.length}
+									</span>
+								)}
 							</div>
 
-							{passage.versesText && passage.versesText.length > 0 ? (
-								<div
-									className={`verses-list ${fontStyle === "serif" ? "font-scripture" : "font-ui"} ${getFontSizeClass()}`}
-								>
-									{passage.versesText.map((verse, vIdx) => {
-										const verseId = `${pIdx}-${verse.number}`;
-										const isHighlighted = highlightedVerse === verseId;
-										const isCopied = copiedVerseId === verseId;
-										const refStr = `${passage.book} ${passage.chapters}:${verse.number}`;
-
-										return (
-											<p
-												key={verse.number}
-												onClick={() =>
-													setHighlightedVerse(isHighlighted ? null : verseId)
-												}
-												className={`verse-paragraph ${vIdx === 0 ? "drop-cap" : ""} ${isHighlighted ? "verse-paragraph--highlighted" : ""}`}
-											>
-												<sup className="verse-num">{verse.number}</sup>
-												<span>{verse.text}</span>
-
-												{/* Verse action buttons — hover (desktop) / below verse (mobile) */}
-												<span className="verse-actions">
-													<button
-														className={`verse-action-btn ${isCopied ? "verse-action-btn--copied" : ""}`}
-														title="Copy verse"
-														onClick={(e) => {
-															e.stopPropagation();
-															copyVerse(verse.text, refStr, verseId);
-														}}
-													>
-														{isCopied ? <Check size={14} /> : <Copy size={14} />}
-														<span className="verse-action-label">{isCopied ? "Copied" : "Copy"}</span>
-													</button>
-													<button
-														className="verse-action-btn"
-														title="Share verse"
-														onClick={(e) => {
-															e.stopPropagation();
-															shareVerse(verse.text, refStr);
-														}}
-													>
-														<Share2 size={14} />
-														<span className="verse-action-label">Share</span>
-													</button>
-												</span>
-											</p>
+							{/* Mark as Read / Unread toggle */}
+							{onTogglePassageRead && (
+								<button
+									onClick={() => {
+										onTogglePassageRead(selectedDateStr, safeIndex);
+										showToast(
+											isCurrentPassageRead
+												? "Passage marked as unread"
+												: "Passage marked as read!",
 										);
-									})}
-								</div>
-							) : (
-								<div
-									style={{
-										padding: "2rem 0",
-										textAlign: "center",
-										color: "var(--text-muted)",
-										fontStyle: "italic",
 									}}
+									className={`btn-mark-read ${isCurrentPassageRead ? "btn-mark-read--completed" : ""}`}
+									title={
+										isCurrentPassageRead
+											? "Click to mark as unread"
+											: "Click to mark as read"
+									}
 								>
-									{isLoadingVerses
-										? "Loading scripture text..."
-										: `Refer to ${passage.book} ${passage.chapters} in your printed Bible.`}
-								</div>
+									{isCurrentPassageRead ? (
+										<>
+											<CheckCircle2 size={15} />
+											<span>Read</span>
+										</>
+									) : (
+										<>
+											<Circle size={15} />
+											<span>Mark as Read</span>
+										</>
+									)}
+								</button>
 							)}
-						</article>
-					))}
-				</div>
+						</div>
+						<h3>
+							{currentPassage.book} {currentPassage.chapters}
+						</h3>
+					</div>
+
+					{/* Verses List */}
+					{currentPassage.versesText && currentPassage.versesText.length > 0 ? (
+						<div
+							className={`verses-list ${fontStyle === "serif" ? "font-scripture" : "font-ui"} ${getFontSizeClass()}`}
+						>
+							{currentPassage.versesText.map((verse, vIdx) => {
+								const verseId = `${safeIndex}-${verse.number}`;
+								const isHighlighted = highlightedVerse === verseId;
+								const isCopied = copiedVerseId === verseId;
+								const refStr = `${currentPassage.book} ${currentPassage.chapters}:${verse.number}`;
+
+								return (
+									<p
+										key={verse.number}
+										onClick={() =>
+											setHighlightedVerse(isHighlighted ? null : verseId)
+										}
+										className={`verse-paragraph ${vIdx === 0 ? "drop-cap" : ""} ${isHighlighted ? "verse-paragraph--highlighted" : ""}`}
+									>
+										<sup className="verse-num">{verse.number}</sup>
+										<span>{verse.text}</span>
+
+										{/* Verse action buttons */}
+										<span className="verse-actions">
+											<button
+												className={`verse-action-btn ${isCopied ? "verse-action-btn--copied" : ""}`}
+												title="Copy verse"
+												onClick={(e) => {
+													e.stopPropagation();
+													copyVerse(verse.text, refStr, verseId);
+												}}
+											>
+												{isCopied ? <Check size={14} /> : <Copy size={14} />}
+												<span className="verse-action-label">
+													{isCopied ? "Copied" : "Copy"}
+												</span>
+											</button>
+											<button
+												className="verse-action-btn"
+												title="Share verse"
+												onClick={(e) => {
+													e.stopPropagation();
+													shareVerse(verse.text, refStr);
+												}}
+											>
+												<Share2 size={14} />
+												<span className="verse-action-label">Share</span>
+											</button>
+										</span>
+									</p>
+								);
+							})}
+						</div>
+					) : (
+						<div
+							style={{
+								padding: "2rem 0",
+								textAlign: "center",
+								color: "var(--text-muted)",
+								fontStyle: "italic",
+							}}
+						>
+							{isLoadingVerses
+								? "Loading scripture text..."
+								: `Refer to ${currentPassage.book} ${currentPassage.chapters} in your printed Bible.`}
+						</div>
+					)}
+
+					{/* Bottom Navigation for Previous / Next Passage */}
+					{passages.length > 0 && (
+						<div className="passage-bottom-nav">
+							<button
+								onClick={() => goToPassage(safeIndex - 1)}
+								disabled={safeIndex === 0}
+								className="btn-secondary passage-nav-btn"
+								title={safeIndex === 0 ? "First passage" : "Previous passage"}
+								style={{
+									opacity: safeIndex === 0 ? 0.45 : 1,
+									cursor: safeIndex === 0 ? "not-allowed" : "pointer",
+								}}
+							>
+								<ChevronLeft size={18} />
+								<span>Previous Passage</span>
+							</button>
+
+							<div className="passage-nav-indicator">
+								<span className="passage-nav-current">{safeIndex + 1}</span>
+								<span className="passage-nav-sep">/</span>
+								<span className="passage-nav-total">{passages.length}</span>
+							</div>
+
+							{safeIndex < passages.length - 1 ? (
+								<button
+									onClick={() => goToPassage(safeIndex + 1)}
+									className="btn-primary passage-nav-btn"
+									title="Next passage"
+								>
+									<span>Next Passage</span>
+									<ChevronRight size={18} />
+								</button>
+							) : (
+								<button
+									onClick={() => {
+										if (isSpeaking && "speechSynthesis" in window) {
+											window.speechSynthesis.cancel();
+											setIsSpeaking(false);
+										}
+										onNextDay();
+									}}
+									className="btn-primary passage-nav-btn"
+									title="Proceed to next day"
+								>
+									<span>Next Day</span>
+									<ChevronRight size={18} />
+								</button>
+							)}
+						</div>
+					)}
+				</article>
 			) : (
 				<div
 					className="card-surface"
@@ -538,7 +679,7 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 				</div>
 			)}
 
-			{/* Copy / Share Success Toast — fixed bottom center */}
+			{/* Copy / Share Success Toast */}
 			{toastMessage && (
 				<div
 					className={`verse-copy-toast ${toastVisible ? "verse-copy-toast--visible" : ""}`}

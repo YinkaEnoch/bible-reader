@@ -19,6 +19,9 @@ export function App() {
     currentMonth,
     currentReadings,
     isLoadingVerses,
+    completedMap,
+    isPassageRead,
+    togglePassageRead,
     selectDate,
     nextMonth,
     prevMonth,
@@ -100,6 +103,8 @@ export function App() {
             currentMonth={currentMonth}
             selectedDate={selectedDate}
             readingsData={bibleData}
+            completedMap={completedMap}
+            isPassageRead={isPassageRead}
             onSelectDate={(date) => selectDate(date)}
             onPrevMonth={prevMonth}
             onNextMonth={nextMonth}
@@ -119,6 +124,8 @@ export function App() {
             onNextDay={goToNextDay}
             initialPassageIndex={selectedPassageIndex}
             isLoadingVerses={isLoadingVerses}
+            isPassageRead={isPassageRead}
+            onTogglePassageRead={togglePassageRead}
           />
         )}
       </main>
