@@ -441,7 +441,7 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 												<sup className="verse-num">{verse.number}</sup>
 												<span>{verse.text}</span>
 
-												{/* Verse action buttons — revealed on hover via CSS */}
+												{/* Verse action buttons — hover (desktop) / below verse (mobile) */}
 												<span className="verse-actions">
 													<button
 														className={`verse-action-btn ${isCopied ? "verse-action-btn--copied" : ""}`}
@@ -452,6 +452,7 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 														}}
 													>
 														{isCopied ? <Check size={13} /> : <Copy size={13} />}
+														<span className="verse-action-label">{isCopied ? "Copied" : "Copy"}</span>
 													</button>
 													<button
 														className="verse-action-btn"
@@ -462,6 +463,7 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 														}}
 													>
 														<Share2 size={13} />
+														<span className="verse-action-label">Share</span>
 													</button>
 												</span>
 											</p>
