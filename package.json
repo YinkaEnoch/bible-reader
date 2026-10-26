@@ -13,6 +13,7 @@
 		"preview": "vite preview",
 		"cap:sync": "npm run build && npx cap sync",
 		"cap:open": "npx cap open android",
+		"generate:splash": "python3 scripts/generate-splash.py",
 		"build:apk": "./build-apk.sh"
 	},
 	"dependencies": {
