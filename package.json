@@ -17,6 +17,7 @@
 		"build:apk": "./build-apk.sh"
 	},
 	"dependencies": {
+		"@capacitor/app": "7.1.2",
 		"@capacitor/core": "^7.0.1",
 		"lucide-react": "^1.28.0",
 		"react": "^19.2.8",

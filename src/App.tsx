@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useTheme } from "./hooks/useTheme";
 import { usePWA } from "./hooks/usePWA";
 import { useReadings } from "./hooks/useReadings";
 import { useBibleVersion } from "./hooks/useBibleVersion";
+import { useAndroidBackButton } from "./hooks/useAndroidBackButton";
 import { Navbar } from "./components/Navbar/Navbar";
 import { CalendarView } from "./components/Calendar/CalendarView";
 import { ReadingView } from "./components/ReadingView/ReadingView";
@@ -28,6 +29,18 @@ export function App() {
 
   const [activeView, setActiveView] = useState<"calendar" | "reading">("calendar");
   const [selectedPassageIndex, setSelectedPassageIndex] = useState<number>(0);
+
+  // Intercept the Android hardware back button.
+  // When the reading view is open, go back to the calendar instead of exiting.
+  const handleBackButton = useCallback(() => {
+    if (activeView === "reading") {
+      setActiveView("calendar");
+      return true; // event handled — don't exit
+    }
+    return false; // let Capacitor's default "exit app" run
+  }, [activeView]);
+
+  useAndroidBackButton(handleBackButton);
 
   const handleOpenReadingView = (passageIndex: number = 0) => {
     setSelectedPassageIndex(passageIndex);
