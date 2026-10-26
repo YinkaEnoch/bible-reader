@@ -1,7 +1,8 @@
 import React from 'react';
-import { BookOpen, Sun, Moon, WifiOff } from 'lucide-react';
+import { Sun, Moon, WifiOff } from 'lucide-react';
 import type { ThemeMode } from '../../types';
 import { APP_VERSION } from '../../version';
+import { AppLogo } from '../Logo/AppLogo';
 
 interface NavbarProps {
   theme: ThemeMode;
@@ -20,9 +21,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Top Row: Brand & Theme Toggle */}
         <div className="navbar-top-row">
           <div className="navbar-logo-group">
-            <div className="navbar-icon-box">
-              <BookOpen size={20} strokeWidth={2.5} />
-            </div>
+            <AppLogo size={34} />
             <div className="navbar-title-box">
               <h1>Bible Reader</h1>
             </div>
