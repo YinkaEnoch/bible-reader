@@ -451,7 +451,7 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 															copyVerse(verse.text, refStr, verseId);
 														}}
 													>
-														{isCopied ? <Check size={13} /> : <Copy size={13} />}
+														{isCopied ? <Check size={14} /> : <Copy size={14} />}
 														<span className="verse-action-label">{isCopied ? "Copied" : "Copy"}</span>
 													</button>
 													<button
@@ -462,7 +462,7 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 															shareVerse(verse.text, refStr);
 														}}
 													>
-														<Share2 size={13} />
+														<Share2 size={14} />
 														<span className="verse-action-label">Share</span>
 													</button>
 												</span>
