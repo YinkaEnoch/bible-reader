@@ -7,6 +7,7 @@ import {
 	ChevronRight,
 	Volume2,
 	VolumeX,
+	Pause,
 	Type,
 	BookOpen,
 	Sparkles,
@@ -26,6 +27,8 @@ import type {
 	BibleVersion,
 } from "../../types";
 import { formatFullDate, formatDateKey } from "../../lib/dateUtils";
+import { usePassageAudio } from "../../hooks/usePassageAudio";
+import { AudioPlayerControls } from "../AudioPlayer/AudioPlayerControls";
 
 interface ReadingViewProps {
 	selectedDate: Date;
@@ -62,8 +65,6 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 		useState<number>(initialPassageIndex);
 	const [fontSize, setFontSize] = useState<ReaderFontSize>("md");
 	const [fontStyle, setFontStyle] = useState<FontStyle>("serif");
-	const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
-	const [speechSupported, setSpeechSupported] = useState<boolean>(false);
 	const [highlightedVerse, setHighlightedVerse] = useState<string | null>(null);
 	const [copiedVerseId, setCopiedVerseId] = useState<string | null>(null);
 	const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -85,9 +86,22 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 		? isPassageRead(selectedDateStr, safeIndex)
 		: false;
 
-	useEffect(() => {
-		setSpeechSupported("speechSynthesis" in window);
+	// Enhanced passage audio reader
+	const audio = usePassageAudio(currentPassage, bibleVersion);
 
+	// Smoothly scroll active spoken verse into viewport
+	useEffect(() => {
+		if (audio.isPlaying && audio.currentVerseNumber !== null) {
+			const verseEl = document.getElementById(
+				`verse-${safeIndex}-${audio.currentVerseNumber}`,
+			);
+			if (verseEl) {
+				verseEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+			}
+		}
+	}, [audio.isPlaying, audio.currentVerseNumber, safeIndex]);
+
+	useEffect(() => {
 		const handleScroll = () => {
 			const totalHeight =
 				document.documentElement.scrollHeight - window.innerHeight;
@@ -100,49 +114,16 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 		window.addEventListener("scroll", handleScroll);
 		return () => {
 			window.removeEventListener("scroll", handleScroll);
-			if ("speechSynthesis" in window) {
-				window.speechSynthesis.cancel();
-			}
 		};
 	}, [selectedDate, safeIndex]);
 
 	// Navigate cleanly between passages and scroll up to the passage top
 	const goToPassage = (newIndex: number) => {
 		if (newIndex < 0 || newIndex >= passages.length) return;
-		if (isSpeaking && "speechSynthesis" in window) {
-			window.speechSynthesis.cancel();
-			setIsSpeaking(false);
-		}
+		audio.stop();
 		setActivePassageIndex(newIndex);
 		setHighlightedVerse(null);
 		window.scrollTo({ top: 0, behavior: "smooth" });
-	};
-
-	const toggleSpeech = () => {
-		if (!speechSupported || !currentPassage) return;
-
-		if (isSpeaking) {
-			window.speechSynthesis.cancel();
-			setIsSpeaking(false);
-			return;
-		}
-
-		const fullText = `${currentPassage.book} chapter ${currentPassage.chapters}. ${
-			currentPassage.versesText
-				?.map((v) => `Verse ${v.number}: ${v.text}`)
-				.join(" ") || ""
-		}`;
-
-		if (!fullText.trim()) return;
-
-		const utterance = new SpeechSynthesisUtterance(fullText);
-		utterance.rate = 0.95;
-		utterance.pitch = 1.0;
-		utterance.onend = () => setIsSpeaking(false);
-		utterance.onerror = () => setIsSpeaking(false);
-
-		window.speechSynthesis.speak(utterance);
-		setIsSpeaking(true);
 	};
 
 	/** Show a bottom toast notification for 2.2 s */
@@ -253,7 +234,10 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 			{/* Reader Nav Bar */}
 			<div className="reader-nav-bar">
 				<button
-					onClick={onBackToCalendar}
+					onClick={() => {
+						audio.stop();
+						onBackToCalendar?.();
+					}}
 					className="btn-secondary"
 					style={{ padding: "0.4rem 0.85rem", marginBottom: "1rem" }}
 				>
@@ -264,10 +248,7 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 				<div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
 					<button
 						onClick={() => {
-							if (isSpeaking && "speechSynthesis" in window) {
-								window.speechSynthesis.cancel();
-								setIsSpeaking(false);
-							}
+							audio.stop();
 							onPrevDay();
 						}}
 						className="btn-icon"
@@ -287,10 +268,7 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 					</span>
 					<button
 						onClick={() => {
-							if (isSpeaking && "speechSynthesis" in window) {
-								window.speechSynthesis.cancel();
-								setIsSpeaking(false);
-							}
+							audio.stop();
 							onNextDay();
 						}}
 						className="btn-icon"
@@ -419,18 +397,23 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 					</div>
 				</div>
 
-				{speechSupported && (
+				{audio.isSupported && (
 					<button
-						onClick={toggleSpeech}
+						onClick={audio.togglePlayPause}
 						className="btn-secondary"
 						style={{
-							backgroundColor: isSpeaking ? "#f59e0b" : undefined,
-							color: isSpeaking ? "#ffffff" : undefined,
+							backgroundColor: audio.isPlaying ? "#f59e0b" : undefined,
+							color: audio.isPlaying ? "#ffffff" : undefined,
 							fontSize: "0.78rem",
 						}}
+						title={
+							audio.isPlaying
+								? "Pause audio reading"
+								: "Listen to audio reading"
+						}
 					>
-						{isSpeaking ? <VolumeX size={14} /> : <Volume2 size={14} />}
-						<span>{isSpeaking ? "Pause Audio" : "Listen Now"}</span>
+						{audio.isPlaying ? <VolumeX size={14} /> : <Volume2 size={14} />}
+						<span>{audio.isPlaying ? "Pause Audio" : "Listen Now"}</span>
 					</button>
 				)}
 			</div>
@@ -540,6 +523,13 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 						</h3>
 					</div>
 
+					{/* Enhanced Audio Controls for Current Passage */}
+					<AudioPlayerControls
+						audio={audio}
+						passage={currentPassage}
+						bibleVersion={bibleVersion}
+					/>
+
 					{/* Verses List */}
 					{currentPassage.versesText && currentPassage.versesText.length > 0 ? (
 						<div
@@ -549,21 +539,52 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 								const verseId = `${safeIndex}-${verse.number}`;
 								const isHighlighted = highlightedVerse === verseId;
 								const isCopied = copiedVerseId === verseId;
+								const isAudioActive =
+									audio.currentVerseIndex === vIdx &&
+									(audio.isPlaying || audio.isPaused);
+								const isThisVerseSpeaking =
+									audio.currentVerseIndex === vIdx && audio.isPlaying;
 								const refStr = `${currentPassage.book} ${currentPassage.chapters}:${verse.number}`;
 
 								return (
 									<p
 										key={verse.number}
+										id={`verse-${safeIndex}-${verse.number}`}
 										onClick={() =>
 											setHighlightedVerse(isHighlighted ? null : verseId)
 										}
-										className={`verse-paragraph ${vIdx === 0 ? "drop-cap" : ""} ${isHighlighted ? "verse-paragraph--highlighted" : ""}`}
+										className={`verse-paragraph ${vIdx === 0 ? "drop-cap" : ""} ${isHighlighted ? "verse-paragraph--highlighted" : ""} ${isAudioActive ? "verse-paragraph--audio-active" : ""}`}
 									>
 										<sup className="verse-num">{verse.number}</sup>
 										<span>{verse.text}</span>
 
 										{/* Verse action buttons */}
 										<span className="verse-actions">
+											<button
+												className={`verse-action-btn ${isThisVerseSpeaking ? "verse-action-btn--audio-active" : ""}`}
+												title={
+													isThisVerseSpeaking
+														? "Pause audio for this verse"
+														: "Listen to this verse"
+												}
+												onClick={(e) => {
+													e.stopPropagation();
+													if (isThisVerseSpeaking) {
+														audio.pause();
+													} else {
+														audio.skipToVerse(vIdx);
+													}
+												}}
+											>
+												{isThisVerseSpeaking ? (
+													<Pause size={14} />
+												) : (
+													<Volume2 size={14} />
+												)}
+												<span className="verse-action-label">
+													{isThisVerseSpeaking ? "Pause" : "Listen"}
+												</span>
+											</button>
 											<button
 												className={`verse-action-btn ${isCopied ? "verse-action-btn--copied" : ""}`}
 												title="Copy verse"
@@ -643,10 +664,7 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 							) : (
 								<button
 									onClick={() => {
-										if (isSpeaking && "speechSynthesis" in window) {
-											window.speechSynthesis.cancel();
-											setIsSpeaking(false);
-										}
+										audio.stop();
 										onNextDay();
 									}}
 									className="btn-primary passage-nav-btn"

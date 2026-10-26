@@ -17,6 +17,7 @@
 		"build:apk": "./build-apk.sh"
 	},
 	"dependencies": {
+		"@capacitor-community/text-to-speech": "6.1.0",
 		"@capacitor/app": "7.1.2",
 		"@capacitor/core": "^7.0.1",
 		"@capacitor/share": "7.0.4",
