@@ -769,7 +769,8 @@ html.dark .calendar-cell.selected, [data-paper="midnight"] .calendar-cell.select
 .verse-paragraph {
   position: relative;
   padding-left: 1.65rem;
-  padding-right: 0.4rem;
+  /* Right padding leaves room for the action buttons */
+  padding-right: 5rem;
   padding-top: 0.3rem;
   padding-bottom: 0.3rem;
   border-radius: var(--radius-md);
@@ -781,6 +782,13 @@ html.dark .calendar-cell.selected, [data-paper="midnight"] .calendar-cell.select
   background-color: var(--bg-tertiary);
 }
 
+/* Highlighted state (clicked) */
+.verse-paragraph--highlighted {
+  background-color: var(--accent-gold-subtle) !important;
+  border-left: 3px solid var(--accent-gold);
+  padding-left: calc(1.65rem - 3px);
+}
+
 .verse-num {
   position: absolute;
   left: 0.2rem;
@@ -790,6 +798,89 @@ html.dark .calendar-cell.selected, [data-paper="midnight"] .calendar-cell.select
   font-weight: 800;
   color: var(--accent-gold);
   user-select: none;
+}
+
+/* Verse action buttons (Copy + Share) */
+.verse-actions {
+  position: absolute;
+  right: 0.3rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+/* Show on hover or when parent is highlighted */
+.verse-paragraph:hover .verse-actions,
+.verse-paragraph--highlighted .verse-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Touch / mobile: always show (no hover available) */
+@media (hover: none) {
+  .verse-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.verse-action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-secondary);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.verse-action-btn:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.verse-action-btn--copied {
+  background-color: var(--status-success-bg);
+  border-color: var(--status-success-border);
+  color: var(--status-success);
+}
+
+/* Copy / Share success toast — fixed bottom center */
+.verse-copy-toast {
+  position: fixed;
+  bottom: 5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(1rem);
+  z-index: 60;
+  background-color: #10b981;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  white-space: nowrap;
+}
+
+.verse-copy-toast--visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 .drop-cap::first-letter {

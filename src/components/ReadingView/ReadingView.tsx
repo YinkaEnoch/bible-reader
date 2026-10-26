@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
 	ArrowLeft,
 	ChevronLeft,
@@ -11,6 +11,9 @@ import {
 	Sparkles,
 	Palette,
 	BookText,
+	Copy,
+	Share2,
+	Check,
 } from "lucide-react";
 import type {
 	Passage,
@@ -53,7 +56,9 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 	const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
 	const [speechSupported, setSpeechSupported] = useState<boolean>(false);
 	const [highlightedVerse, setHighlightedVerse] = useState<string | null>(null);
-	const [copiedNotice, setCopiedNotice] = useState<boolean>(false);
+	const [copiedVerseId, setCopiedVerseId] = useState<string | null>(null);
+	const [toastMessage, setToastMessage] = useState<string | null>(null);
+	const [toastVisible, setToastVisible] = useState<boolean>(false);
 	const [scrollProgress, setScrollProgress] = useState<number>(0);
 
 	useEffect(() => {
@@ -121,11 +126,47 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 		setIsSpeaking(true);
 	};
 
-	const copyVerse = (text: string, refStr: string) => {
-		navigator.clipboard.writeText(`"${text}" — ${refStr}`);
-		setCopiedNotice(true);
-		setTimeout(() => setCopiedNotice(false), 2000);
-	};
+	/** Show a bottom toast notification for 2.2 s */
+	const showToast = useCallback((message: string) => {
+		setToastMessage(message);
+		setToastVisible(true);
+		setTimeout(() => {
+			setToastVisible(false);
+			setTimeout(() => setToastMessage(null), 300);
+		}, 2200);
+	}, []);
+
+	/** Copy a single verse to clipboard and show the toast */
+	const copyVerse = useCallback(
+		(text: string, refStr: string, verseId: string) => {
+			const content = `"${text}" — ${refStr}`;
+			navigator.clipboard.writeText(content).then(() => {
+				setCopiedVerseId(verseId);
+				showToast("Verse copied to clipboard!");
+				setTimeout(() => setCopiedVerseId(null), 2000);
+			});
+		},
+		[showToast],
+	);
+
+	/** Share a verse via Web Share API, falling back to clipboard copy */
+	const shareVerse = useCallback(
+		async (text: string, refStr: string) => {
+			const content = `"${text}" — ${refStr}`;
+			if (navigator.share) {
+				try {
+					await navigator.share({ text: content });
+				} catch {
+					// user cancelled or share failed — silently ignore
+				}
+			} else {
+				// Fallback: copy to clipboard when Web Share is unavailable (e.g. desktop)
+				await navigator.clipboard.writeText(content);
+				showToast("Verse copied to clipboard!");
+			}
+		},
+		[showToast],
+	);
 
 	const getFontSizeClass = () => {
 		switch (fontSize) {
@@ -337,22 +378,6 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 				)}
 			</div>
 
-			{copiedNotice && (
-				<div
-					style={{
-						padding: "0.65rem",
-						borderRadius: "var(--radius-md)",
-						backgroundColor: "#10b981",
-						color: "#ffffff",
-						fontSize: "0.8rem",
-						fontWeight: 700,
-						textAlign: "center",
-					}}
-				>
-					✓ Verse copied to clipboard!
-				</div>
-			)}
-
 			{/* Passages List */}
 			{passages.length > 0 ? (
 				<div
@@ -402,29 +427,43 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 									{passage.versesText.map((verse, vIdx) => {
 										const verseId = `${pIdx}-${verse.number}`;
 										const isHighlighted = highlightedVerse === verseId;
+										const isCopied = copiedVerseId === verseId;
+										const refStr = `${passage.book} ${passage.chapters}:${verse.number}`;
 
 										return (
 											<p
 												key={verse.number}
-												onClick={() => {
-													setHighlightedVerse(isHighlighted ? null : verseId);
-													copyVerse(
-														verse.text,
-														`${passage.book} ${passage.chapters}:${verse.number}`,
-													);
-												}}
-												className={`verse-paragraph ${vIdx === 0 ? "drop-cap" : ""}`}
-												style={{
-													backgroundColor: isHighlighted
-														? "var(--accent-gold-subtle)"
-														: undefined,
-													borderLeft: isHighlighted
-														? "3px solid var(--accent-gold)"
-														: undefined,
-												}}
+												onClick={() =>
+													setHighlightedVerse(isHighlighted ? null : verseId)
+												}
+												className={`verse-paragraph ${vIdx === 0 ? "drop-cap" : ""} ${isHighlighted ? "verse-paragraph--highlighted" : ""}`}
 											>
 												<sup className="verse-num">{verse.number}</sup>
 												<span>{verse.text}</span>
+
+												{/* Verse action buttons — revealed on hover via CSS */}
+												<span className="verse-actions">
+													<button
+														className={`verse-action-btn ${isCopied ? "verse-action-btn--copied" : ""}`}
+														title="Copy verse"
+														onClick={(e) => {
+															e.stopPropagation();
+															copyVerse(verse.text, refStr, verseId);
+														}}
+													>
+														{isCopied ? <Check size={13} /> : <Copy size={13} />}
+													</button>
+													<button
+														className="verse-action-btn"
+														title="Share verse"
+														onClick={(e) => {
+															e.stopPropagation();
+															shareVerse(verse.text, refStr);
+														}}
+													>
+														<Share2 size={13} />
+													</button>
+												</span>
 											</p>
 										);
 									})}
@@ -463,6 +502,16 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 					<p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
 						There are no assigned passages for {formatFullDate(selectedDate)}.
 					</p>
+				</div>
+			)}
+
+			{/* Copy / Share Success Toast — fixed bottom center */}
+			{toastMessage && (
+				<div
+					className={`verse-copy-toast ${toastVisible ? "verse-copy-toast--visible" : ""}`}
+				>
+					<Check size={15} />
+					<span>{toastMessage}</span>
 				</div>
 			)}
 		</div>
