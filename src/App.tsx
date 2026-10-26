@@ -4,6 +4,7 @@ import { usePWA } from "./hooks/usePWA";
 import { useReadings } from "./hooks/useReadings";
 import { useBibleVersion } from "./hooks/useBibleVersion";
 import { useAndroidBackButton } from "./hooks/useAndroidBackButton";
+import { useRandomScripture } from "./hooks/useRandomScripture";
 import { Navbar } from "./components/Navbar/Navbar";
 import { CalendarView } from "./components/Calendar/CalendarView";
 import { ReadingView } from "./components/ReadingView/ReadingView";
@@ -13,6 +14,11 @@ export function App() {
   const { theme, toggleTheme } = useTheme();
   const { isOffline } = usePWA();
   const { bibleVersion, setBibleVersion } = useBibleVersion();
+  const {
+    scripture: randomScripture,
+    refreshScripture,
+    isLoading: isLoadingScripture,
+  } = useRandomScripture();
   const {
     bibleData,
     selectedDate,
@@ -110,6 +116,9 @@ export function App() {
             onNextMonth={nextMonth}
             onGoToToday={goToToday}
             onOpenReadingView={handleOpenReadingView}
+            randomScripture={randomScripture}
+            onRefreshScripture={refreshScripture}
+            isLoadingScripture={isLoadingScripture}
           />
         ) : (
           <ReadingView

@@ -1,408 +1,463 @@
 import React, { useState } from "react";
 import {
-  ChevronLeft,
-  ChevronRight,
-  Calendar as CalendarIcon,
-  BookOpen,
-  Info,
-  Sparkles,
-  Grid,
-  Columns,
-  Check,
+	ChevronLeft,
+	ChevronRight,
+	Calendar as CalendarIcon,
+	BookOpen,
+	Info,
+	Sparkles,
+	Shuffle,
+	Grid,
+	Columns,
+	Check,
 } from "lucide-react";
-import type { BibleReadingsMap, ReadingStatusMap } from "../../types";
+import type {
+	BibleReadingsMap,
+	ReadingStatusMap,
+	RandomScripture,
+} from "../../types";
 import {
-  getCalendarGridDays,
-  formatMonthYear,
-  formatFullDate,
-  formatDateKey,
+	getCalendarGridDays,
+	formatMonthYear,
+	formatFullDate,
+	formatDateKey,
 } from "../../lib/dateUtils";
 
 interface CalendarViewProps {
-  currentMonth: Date;
-  selectedDate: Date;
-  readingsData: BibleReadingsMap;
-  completedMap?: ReadingStatusMap;
-  isPassageRead?: (dateStr: string, passageIndex: number) => boolean;
-  onSelectDate: (date: Date) => void;
-  onPrevMonth: () => void;
-  onNextMonth: () => void;
-  onGoToToday: () => void;
-  onOpenReadingView: (passageIndex?: number) => void;
+	currentMonth: Date;
+	selectedDate: Date;
+	readingsData: BibleReadingsMap;
+	completedMap?: ReadingStatusMap;
+	isPassageRead?: (dateStr: string, passageIndex: number) => boolean;
+	onSelectDate: (date: Date) => void;
+	onPrevMonth: () => void;
+	onNextMonth: () => void;
+	onGoToToday: () => void;
+	onOpenReadingView: (passageIndex?: number) => void;
+	randomScripture?: RandomScripture;
+	onRefreshScripture?: () => void;
+	isLoadingScripture?: boolean;
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export const CalendarView: React.FC<CalendarViewProps> = ({
-  currentMonth,
-  selectedDate,
-  readingsData,
-  completedMap,
-  isPassageRead,
-  onSelectDate,
-  onPrevMonth,
-  onNextMonth,
-  onGoToToday,
-  onOpenReadingView,
+	currentMonth,
+	selectedDate,
+	readingsData,
+	completedMap,
+	isPassageRead,
+	onSelectDate,
+	onPrevMonth,
+	onNextMonth,
+	onGoToToday,
+	onOpenReadingView,
+	randomScripture,
+	onRefreshScripture,
+	isLoadingScripture,
 }) => {
-  const [viewMode, setViewMode] = useState<"grid" | "week">("grid");
+	const [viewMode, setViewMode] = useState<"grid" | "week">("grid");
 
-  const gridDays = getCalendarGridDays(
-    currentMonth,
-    selectedDate,
-    readingsData,
-    completedMap || {},
-  );
-  const selectedDateStr = formatDateKey(selectedDate);
-  const selectedReadings = readingsData[selectedDateStr] || [];
+	const gridDays = getCalendarGridDays(
+		currentMonth,
+		selectedDate,
+		readingsData,
+		completedMap || {},
+	);
+	const selectedDateStr = formatDateKey(selectedDate);
+	const selectedReadings = readingsData[selectedDateStr] || [];
 
-  const selectedIndex = gridDays.findIndex((d) => d.isSelected);
-  const weekDays =
-    selectedIndex >= 0
-      ? gridDays.slice(
-          Math.max(0, selectedIndex - 3),
-          Math.min(gridDays.length, selectedIndex + 4),
-        )
-      : gridDays.slice(0, 7);
+	const selectedIndex = gridDays.findIndex((d) => d.isSelected);
+	const weekDays =
+		selectedIndex >= 0
+			? gridDays.slice(
+					Math.max(0, selectedIndex - 3),
+					Math.min(gridDays.length, selectedIndex + 4),
+				)
+			: gridDays.slice(0, 7);
 
-  const activeDaysList = viewMode === "grid" ? gridDays : weekDays;
+	const activeDaysList = viewMode === "grid" ? gridDays : weekDays;
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-      {/* Reflection Banner */}
-      <div className="quote-banner">
-        <div className="quote-banner-content">
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.4rem",
-              color: "var(--accent-gold)",
-              fontSize: "0.75rem",
-              fontWeight: 800,
-              textTransform: "uppercase",
-            }}
-          >
-            <Sparkles size={14} />
-            <span>Daily Scripture</span>
-          </div>
-          <p className="quote-text">
-            "Thy word is a lamp unto my feet, and a light unto my path."
-          </p>
-          <div className="quote-author">— Psalm 119:105</div>
-        </div>
-      </div>
+	return (
+		<div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+			{/* Reflection Banner */}
+			<div className="quote-banner">
+				<div className="quote-banner-content">
+					<div
+						style={{
+							display: "flex",
+							alignItems: "center",
+							justifyContent: "space-between",
+						}}
+					>
+						<div
+							style={{
+								display: "flex",
+								alignItems: "center",
+								gap: "0.4rem",
+								color: "var(--accent-gold)",
+								fontSize: "0.75rem",
+								fontWeight: 800,
+								textTransform: "uppercase",
+								letterSpacing: "0.04em",
+							}}
+						>
+							<Sparkles size={14} />
+							<span>Scripture of the Moment</span>
+						</div>
+						{onRefreshScripture && (
+							<button
+								type="button"
+								onClick={onRefreshScripture}
+								disabled={isLoadingScripture}
+								className="btn-icon"
+								style={{
+									width: "26px",
+									height: "26px",
+									padding: "4px",
+									color: "var(--text-muted)",
+									background: "transparent",
+									border: "none",
+									cursor: isLoadingScripture ? "wait" : "pointer",
+									borderRadius: "6px",
+									display: "inline-flex",
+									alignItems: "center",
+									justifyContent: "center",
+									opacity: isLoadingScripture ? 0.4 : 0.8,
+									transition: "opacity 0.2s ease",
+								}}
+								title="Get another random scripture"
+								aria-label="Get another random scripture"
+							>
+								<Shuffle size={13} />
+							</button>
+						)}
+					</div>
+					<p className="quote-text">
+						"
+						{randomScripture?.text ||
+							"Thy word is a lamp unto my feet, and a light unto my path."}
+						"
+					</p>
+					<div className="quote-author">
+						— {randomScripture?.reference || "Psalm 119:105"}
+					</div>
+				</div>
+			</div>
 
-      {/* Calendar Card */}
-      <div className="card-surface calendar-card">
-        {/* Header Controls */}
-        <div className="calendar-top-bar">
-          <div className="calendar-month-title">
-            <div
-              className="navbar-icon-box"
-              style={{ width: "36px", height: "36px" }}
-            >
-              <CalendarIcon size={18} />
-            </div>
-            <div>
-              <h2>{formatMonthYear(currentMonth)}</h2>
-              <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                Select a date to open assigned Bible readings
-              </span>
-            </div>
-          </div>
+			{/* Calendar Card */}
+			<div className="card-surface calendar-card">
+				{/* Header Controls */}
+				<div className="calendar-top-bar">
+					<div className="calendar-month-title">
+						<div
+							className="navbar-icon-box"
+							style={{ width: "36px", height: "36px" }}
+						>
+							<CalendarIcon size={18} />
+						</div>
+						<div>
+							<h2>{formatMonthYear(currentMonth)}</h2>
+							<span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+								Select a date to open assigned Bible readings
+							</span>
+						</div>
+					</div>
 
-          <div className="calendar-controls">
-            <div
-              style={{
-                display: "flex",
-                backgroundColor: "var(--bg-tertiary)",
-                padding: "2px",
-                borderRadius: "8px",
-                border: "1px solid var(--border-color)",
-              }}
-            >
-              <button
-                onClick={() => setViewMode("grid")}
-                className="btn-icon"
-                style={{
-                  width: "30px",
-                  height: "30px",
-                  backgroundColor:
-                    viewMode === "grid" ? "var(--bg-secondary)" : "transparent",
-                  border: "none",
-                }}
-                title="Month Grid View"
-              >
-                <Grid
-                  size={14}
-                  color={
-                    viewMode === "grid"
-                      ? "var(--accent-gold)"
-                      : "var(--text-muted)"
-                  }
-                />
-              </button>
-              <button
-                onClick={() => setViewMode("week")}
-                className="btn-icon"
-                style={{
-                  width: "30px",
-                  height: "30px",
-                  backgroundColor:
-                    viewMode === "week" ? "var(--bg-secondary)" : "transparent",
-                  border: "none",
-                }}
-                title="Week Strip View"
-              >
-                <Columns
-                  size={14}
-                  color={
-                    viewMode === "week"
-                      ? "var(--accent-gold)"
-                      : "var(--text-muted)"
-                  }
-                />
-              </button>
-            </div>
+					<div className="calendar-controls">
+						<div
+							style={{
+								display: "flex",
+								backgroundColor: "var(--bg-tertiary)",
+								padding: "2px",
+								borderRadius: "8px",
+								border: "1px solid var(--border-color)",
+							}}
+						>
+							<button
+								onClick={() => setViewMode("grid")}
+								className="btn-icon"
+								style={{
+									width: "30px",
+									height: "30px",
+									backgroundColor:
+										viewMode === "grid" ? "var(--bg-secondary)" : "transparent",
+									border: "none",
+								}}
+								title="Month Grid View"
+							>
+								<Grid
+									size={14}
+									color={
+										viewMode === "grid"
+											? "var(--accent-gold)"
+											: "var(--text-muted)"
+									}
+								/>
+							</button>
+							<button
+								onClick={() => setViewMode("week")}
+								className="btn-icon"
+								style={{
+									width: "30px",
+									height: "30px",
+									backgroundColor:
+										viewMode === "week" ? "var(--bg-secondary)" : "transparent",
+									border: "none",
+								}}
+								title="Week Strip View"
+							>
+								<Columns
+									size={14}
+									color={
+										viewMode === "week"
+											? "var(--accent-gold)"
+											: "var(--text-muted)"
+									}
+								/>
+							</button>
+						</div>
 
-            <button
-              onClick={onGoToToday}
-              className="btn-secondary"
-              style={{ padding: "0.35rem 0.75rem", minHeight: "32px" }}
-            >
-              Today
-            </button>
+						<button
+							onClick={onGoToToday}
+							className="btn-secondary"
+							style={{ padding: "0.35rem 0.75rem", minHeight: "32px" }}
+						>
+							Today
+						</button>
 
-            <button
-              onClick={onPrevMonth}
-              className="btn-icon"
-              style={{ width: "32px", height: "32px" }}
-              title="Previous Month"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <button
-              onClick={onNextMonth}
-              className="btn-icon"
-              style={{ width: "32px", height: "32px" }}
-              title="Next Month"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
+						<button
+							onClick={onPrevMonth}
+							className="btn-icon"
+							style={{ width: "32px", height: "32px" }}
+							title="Previous Month"
+						>
+							<ChevronLeft size={16} />
+						</button>
+						<button
+							onClick={onNextMonth}
+							className="btn-icon"
+							style={{ width: "32px", height: "32px" }}
+							title="Next Month"
+						>
+							<ChevronRight size={16} />
+						</button>
+					</div>
+				</div>
 
-        {/* Days of Week Header */}
-        <div className="calendar-weekdays">
-          {WEEKDAYS.map((day) => (
-            <div key={day}>{day}</div>
-          ))}
-        </div>
+				{/* Days of Week Header */}
+				<div className="calendar-weekdays">
+					{WEEKDAYS.map((day) => (
+						<div key={day}>{day}</div>
+					))}
+				</div>
 
-        {/* Calendar Grid Cells */}
-        <div className="calendar-grid">
-          {activeDaysList.map((dayItem, idx) => {
-            const {
-              date,
-              dayNumber,
-              isCurrentMonth,
-              isToday,
-              isSelected,
-              hasReading,
-              isCompleted,
-            } = dayItem;
+				{/* Calendar Grid Cells */}
+				<div className="calendar-grid">
+					{activeDaysList.map((dayItem, idx) => {
+						const {
+							date,
+							dayNumber,
+							isCurrentMonth,
+							isToday,
+							isSelected,
+							hasReading,
+							isCompleted,
+						} = dayItem;
 
-            let cellClass = "calendar-cell";
-            if (!isCurrentMonth) cellClass += " muted";
-            if (isToday) cellClass += " today";
-            if (isSelected) cellClass += " selected";
-            if (isCompleted) cellClass += " completed";
+						let cellClass = "calendar-cell";
+						if (!isCurrentMonth) cellClass += " muted";
+						if (isToday) cellClass += " today";
+						if (isSelected) cellClass += " selected";
+						if (isCompleted) cellClass += " completed";
 
-            return (
-              <button
-                key={idx}
-                onClick={() => onSelectDate(date)}
-                className={cellClass}
-                aria-label={`${formatFullDate(date)}${hasReading ? ", has reading" : ""}${isCompleted ? ", completed" : ""}`}
-              >
-                <div className="cell-top-row">
-                  <span className="cell-day-num">{dayNumber}</span>
-                </div>
+						return (
+							<button
+								key={idx}
+								onClick={() => onSelectDate(date)}
+								className={cellClass}
+								aria-label={`${formatFullDate(date)}${hasReading ? ", has reading" : ""}${isCompleted ? ", completed" : ""}`}
+							>
+								<div className="cell-top-row">
+									<span className="cell-day-num">{dayNumber}</span>
+								</div>
 
-                <div className="cell-dot-row">
-                  {isCompleted ? (
-                    <span className="completed-dot" title="All readings completed" />
-                  ) : !hasReading ? (
-                    <span className="no-reading-dot" />
-                  ) : null}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+								<div className="cell-dot-row">
+									{isCompleted ? (
+										<span
+											className="completed-dot"
+											title="All readings completed"
+										/>
+									) : !hasReading ? (
+										<span className="no-reading-dot" />
+									) : null}
+								</div>
+							</button>
+						);
+					})}
+				</div>
+			</div>
 
-      {/* Selected Date Reading Card */}
-      <div className="card-surface reading-preview-card">
-        <div className="preview-header">
-          <div>
-            <span
-              style={{
-                fontSize: "0.72rem",
-                fontWeight: 800,
-                textTransform: "uppercase",
-                color: "var(--accent-gold)",
-              }}
-            >
-              Selected Date
-            </span>
-            <h3
-              style={{
-                marginTop: "0.2rem",
-                fontFamily: "var(--font-heading)",
-                fontSize: "1.3rem",
-                fontWeight: 700,
-              }}
-            >
-              {formatFullDate(selectedDate)}
-            </h3>
-          </div>
+			{/* Selected Date Reading Card */}
+			<div className="card-surface reading-preview-card">
+				<div className="preview-header">
+					<div>
+						<span
+							style={{
+								fontSize: "0.72rem",
+								fontWeight: 800,
+								textTransform: "uppercase",
+								color: "var(--accent-gold)",
+							}}
+						>
+							Selected Date
+						</span>
+						<h3
+							style={{
+								marginTop: "0.2rem",
+								fontFamily: "var(--font-heading)",
+								fontSize: "1.3rem",
+								fontWeight: 700,
+							}}
+						>
+							{formatFullDate(selectedDate)}
+						</h3>
+					</div>
 
-          {selectedReadings.length > 0 && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.85rem",
-                fontSize: "0.8rem",
-                color: "var(--text-muted)",
-                fontWeight: 600,
-              }}
-            >
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.3rem",
-                }}
-              >
-                <BookOpen size={15} color="var(--accent-gold)" />
-                {selectedReadings.length} Passages
-              </span>
-            </div>
-          )}
-        </div>
+					{selectedReadings.length > 0 && (
+						<div
+							style={{
+								display: "flex",
+								alignItems: "center",
+								gap: "0.85rem",
+								fontSize: "0.8rem",
+								color: "var(--text-muted)",
+								fontWeight: 600,
+							}}
+						>
+							<span
+								style={{
+									display: "inline-flex",
+									alignItems: "center",
+									gap: "0.3rem",
+								}}
+							>
+								<BookOpen size={15} color="var(--accent-gold)" />
+								{selectedReadings.length} Passages
+							</span>
+						</div>
+					)}
+				</div>
 
-        {selectedReadings.length > 0 ? (
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}
-          >
-            <div className="preview-passages-list">
-              {selectedReadings.map((p, idx) => {
-                const isRead = isPassageRead
-                  ? isPassageRead(selectedDateStr, idx)
-                  : false;
+				{selectedReadings.length > 0 ? (
+					<div
+						style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}
+					>
+						<div className="preview-passages-list">
+							{selectedReadings.map((p, idx) => {
+								const isRead = isPassageRead
+									? isPassageRead(selectedDateStr, idx)
+									: false;
 
-                return (
-                  <div
-                    key={idx}
-                    className={`passage-card-item ${isRead ? "passage-card-item--read" : ""}`}
-                    onClick={() => onOpenReadingView(idx)}
-                    title={`Click to read ${p.book} ${p.chapters}`}
-                  >
-                    <div className="passage-card-info">
-                      <div
-                        className={`passage-num-badge ${isRead ? "passage-num-badge--read" : ""}`}
-                      >
-                        {isRead ? <Check size={16} /> : idx + 1}
-                      </div>
-                      <div>
-                        <div
-                          className={`passage-book-title ${isRead ? "passage-book-title--read" : ""}`}
-                        >
-                          {p.book} {p.chapters}
-                        </div>
-                        {p.category && (
-                          <div className="passage-category">{p.category}</div>
-                        )}
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.5rem",
-                      }}
-                    >
-                      {isRead && (
-                        <span
-                          className="badge-pill"
-                          style={{
-                            backgroundColor: "var(--status-success-bg)",
-                            color: "var(--status-success)",
-                            borderColor: "var(--status-success-border)",
-                            fontSize: "0.7rem",
-                            padding: "0.2rem 0.55rem",
-                            fontWeight: 700,
-                          }}
-                        >
-                          Read
-                        </span>
-                      )}
-                      <ChevronRight size={18} color="var(--accent-gold)" />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+								return (
+									<div
+										key={idx}
+										className={`passage-card-item ${isRead ? "passage-card-item--read" : ""}`}
+										onClick={() => onOpenReadingView(idx)}
+										title={`Click to read ${p.book} ${p.chapters}`}
+									>
+										<div className="passage-card-info">
+											<div
+												className={`passage-num-badge ${isRead ? "passage-num-badge--read" : ""}`}
+											>
+												{isRead ? <Check size={16} /> : idx + 1}
+											</div>
+											<div>
+												<div
+													className={`passage-book-title ${isRead ? "passage-book-title--read" : ""}`}
+												>
+													{p.book} {p.chapters}
+												</div>
+												{p.category && (
+													<div className="passage-category">{p.category}</div>
+												)}
+											</div>
+										</div>
+										<div
+											style={{
+												display: "flex",
+												alignItems: "center",
+												gap: "0.5rem",
+											}}
+										>
+											{isRead && (
+												<span
+													className="badge-pill"
+													style={{
+														backgroundColor: "var(--status-success-bg)",
+														color: "var(--status-success)",
+														borderColor: "var(--status-success-border)",
+														fontSize: "0.7rem",
+														padding: "0.2rem 0.55rem",
+														fontWeight: 700,
+													}}
+												>
+													Read
+												</span>
+											)}
+											<ChevronRight size={18} color="var(--accent-gold)" />
+										</div>
+									</div>
+								);
+							})}
+						</div>
 
-            <button
-              onClick={() => onOpenReadingView(0)}
-              className="btn-primary"
-              style={{
-                width: "100%",
-                fontSize: "0.95rem",
-                marginTop: "0.25rem",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "0.5rem",
-              }}
-            >
-              <BookOpen size={18} />
-              <span>Read Scripture Passages</span>
-              <ChevronRight size={18} />
-            </button>
-          </div>
-        ) : (
-          <div
-            style={{
-              padding: "1.5rem",
-              textAlign: "center",
-              backgroundColor: "var(--bg-tertiary)",
-              borderRadius: "var(--radius-md)",
-              border: "1px solid var(--border-color)",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "0.5rem",
-            }}
-          >
-            <Info size={24} color="var(--text-muted)" />
-            <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-              No assigned Bible reading for this date.
-            </p>
-            <button
-              onClick={onGoToToday}
-              className="btn-secondary"
-              style={{ border: "none", color: "var(--accent-gold)" }}
-            >
-              Jump to Today's Reading →
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+						<button
+							onClick={() => onOpenReadingView(0)}
+							className="btn-primary"
+							style={{
+								width: "100%",
+								fontSize: "0.95rem",
+								marginTop: "0.25rem",
+								display: "flex",
+								alignItems: "center",
+								justifyContent: "center",
+								gap: "0.5rem",
+							}}
+						>
+							<BookOpen size={18} />
+							<span>Read Scripture Passages</span>
+							<ChevronRight size={18} />
+						</button>
+					</div>
+				) : (
+					<div
+						style={{
+							padding: "1.5rem",
+							textAlign: "center",
+							backgroundColor: "var(--bg-tertiary)",
+							borderRadius: "var(--radius-md)",
+							border: "1px solid var(--border-color)",
+							display: "flex",
+							flexDirection: "column",
+							alignItems: "center",
+							gap: "0.5rem",
+						}}
+					>
+						<Info size={24} color="var(--text-muted)" />
+						<p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+							No assigned Bible reading for this date.
+						</p>
+						<button
+							onClick={onGoToToday}
+							className="btn-secondary"
+							style={{ border: "none", color: "var(--accent-gold)" }}
+						>
+							Jump to Today's Reading →
+						</button>
+					</div>
+				)}
+			</div>
+		</div>
+	);
 };

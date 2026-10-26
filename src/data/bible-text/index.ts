@@ -1,4 +1,4 @@
-import type { Verse } from '../../types';
+import type { Verse, RandomScripture } from '../../types';
 
 /**
  * Source data shape for each per-book JSON file.
@@ -264,3 +264,48 @@ export async function getVerses(book: string, chaptersRef: string): Promise<Vers
 
   return parseChapterRef(data.chapters, chaptersRef);
 }
+
+export const DEFAULT_SCRIPTURE: RandomScripture = {
+  book: 'Psalms',
+  chapter: '119',
+  verse: 105,
+  text: 'Thy word is a lamp unto my feet, and a light unto my path.',
+  reference: 'Psalm 119:105',
+};
+
+/**
+ * Retrieves a random verse from any book in the King James Version (KJV).
+ * Loads the selected book on-demand via dynamic chunk import.
+ */
+export async function getRandomVerse(): Promise<RandomScripture> {
+  const books = Object.keys(bookImports);
+  if (books.length === 0) return DEFAULT_SCRIPTURE;
+
+  // Try up to 3 times in case of unexpected empty chapters or load errors
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const randomBook = books[Math.floor(Math.random() * books.length)];
+    const bookData = await loadBook(randomBook);
+    if (!bookData || !bookData.chapters) continue;
+
+    const chapters = Object.keys(bookData.chapters);
+    if (chapters.length === 0) continue;
+
+    const randomChapter = chapters[Math.floor(Math.random() * chapters.length)];
+    const verses = bookData.chapters[randomChapter];
+    if (!verses || verses.length === 0) continue;
+
+    const randomVerse = verses[Math.floor(Math.random() * verses.length)];
+    const bookDisplayName = bookData.book === 'Psalms' ? 'Psalm' : bookData.book;
+
+    return {
+      book: bookData.book,
+      chapter: randomChapter,
+      verse: randomVerse.number,
+      text: randomVerse.text.trim(),
+      reference: `${bookDisplayName} ${randomChapter}:${randomVerse.number}`,
+    };
+  }
+
+  return DEFAULT_SCRIPTURE;
+}
+

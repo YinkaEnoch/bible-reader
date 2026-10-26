@@ -42,3 +42,12 @@ export interface CalendarDay {
   isCompleted: boolean;
   readingCount: number;
 }
+
+export interface RandomScripture {
+  book: string;
+  chapter: string;
+  verse: number;
+  text: string;
+  reference: string;
+}
+
