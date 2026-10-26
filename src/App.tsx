@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useTheme } from "./hooks/useTheme";
 import { usePWA } from "./hooks/usePWA";
 import { useReadings } from "./hooks/useReadings";
@@ -48,9 +48,23 @@ export function App() {
     window.scrollTo({ top: 0, behavior: "instant" });
   };
 
-  const [paperTheme, setPaperTheme] = useState<PaperTheme>(() => {
-    return theme === "dark" ? "midnight" : "parchment";
-  });
+  // Derive the initial paper theme from the resolved theme value so the two
+  // systems start in sync. When the user explicitly picks a paper theme inside
+  // the ReadingView, `setPaperTheme` overrides this derived value (that's fine
+  // — the override only lasts for the session; on the next cold-start the hook
+  // initialiser re-derives from localStorage / system preference again).
+  const [paperTheme, setPaperTheme] = useState<PaperTheme>(
+    theme === "dark" ? "midnight" : "parchment"
+  );
+
+  // Keep paperTheme in sync whenever the top-level theme toggle changes so
+  // that toggling dark/light mode is immediately reflected in the reading view
+  // paper style. A user-selected paperTheme (e.g. "sepia") is intentionally
+  // overwritten here because the theme toggle always signals intent to go dark
+  // or light — the user can re-select their preferred paper after switching.
+  useEffect(() => {
+    setPaperTheme(theme === "dark" ? "midnight" : "parchment");
+  }, [theme]);
 
   return (
     <div
