@@ -28,3 +28,4 @@ dist-ssr
 .tmp/
 *.apk
 build-apk.sh
+Makefile
