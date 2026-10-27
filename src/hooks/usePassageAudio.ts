@@ -101,6 +101,15 @@ function stopBackgroundAudioSession() {
 	}
 }
 
+export const DEFAULT_TTS_VOICE: TtsVoiceOption = {
+	id: "default",
+	nativeIndex: -1,
+	name: "System Default",
+	lang: "en-US",
+	displayName: "System Default",
+	default: true,
+};
+
 export function usePassageAudio(
 	passage: Passage | null | undefined,
 	bibleVersion?: BibleVersion,
@@ -112,8 +121,8 @@ export function usePassageAudio(
 	const [repeatVerse, setRepeatVerseState] = useState<boolean>(false);
 	const [loopPassage, setLoopPassageState] = useState<boolean>(false);
 	const [isSupported, setIsSupported] = useState<boolean>(true);
-	const [voices, setVoices] = useState<TtsVoiceOption[]>([]);
-	const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(null);
+	const [voices, setVoices] = useState<TtsVoiceOption[]>([DEFAULT_TTS_VOICE]);
+	const [selectedVoiceId, setSelectedVoiceId] = useState<string>("default");
 
 	// Refs for values accessed inside asynchronous speech loops
 	const passageRef = useRef(passage);
@@ -137,10 +146,10 @@ export function usePassageAudio(
 	const loopPassageRef = useRef(loopPassage);
 	loopPassageRef.current = loopPassage;
 
-	const voicesRef = useRef<TtsVoiceOption[]>([]);
+	const voicesRef = useRef<TtsVoiceOption[]>([DEFAULT_TTS_VOICE]);
 	voicesRef.current = voices;
 
-	const selectedVoiceRef = useRef<TtsVoiceOption | null>(null);
+	const selectedVoiceRef = useRef<TtsVoiceOption | null>(DEFAULT_TTS_VOICE);
 	const webVoicesRef = useRef<SpeechSynthesisVoice[]>([]);
 
 	// Incremental session ID to cancel out-of-date utterances and asynchronous loops
@@ -158,84 +167,142 @@ export function usePassageAudio(
 	useEffect(() => {
 		let isMounted = true;
 
+		// Shared helper: commit a mapped voice list to state, keeping "System Default" at the top
+		function applyVoiceList(discoveredVoices: TtsVoiceOption[]) {
+			if (!isMounted) return;
+			const cleaned = discoveredVoices.filter((v) => v.id !== "default");
+			const voiceList: TtsVoiceOption[] = [DEFAULT_TTS_VOICE, ...cleaned];
+
+			setVoices(voiceList);
+			voicesRef.current = voiceList;
+
+			const savedId = localStorage.getItem("bible_reader_tts_voice_id");
+			let chosen = voiceList.find((v) => v.id === savedId);
+			if (!chosen) {
+				chosen = DEFAULT_TTS_VOICE;
+			}
+			setSelectedVoiceId(chosen.id);
+			selectedVoiceRef.current = chosen;
+		}
+
+		// Shared helper: map raw SpeechSynthesisVoice[] → TtsVoiceOption[],
+		// filtered to English (falling back to all voices if none match).
+		function mapAndFilterWebVoices(rawVoices: SpeechSynthesisVoice[]): TtsVoiceOption[] {
+			const mapped: TtsVoiceOption[] = rawVoices.map((v, idx) => ({
+				id: v.voiceURI || v.name || `web-voice-${idx}`,
+				nativeIndex: idx,
+				name: v.name || `Voice ${idx + 1}`,
+				lang: v.lang || "en-US",
+				displayName: getVoiceDisplayName(
+					v.voiceURI || v.name || `Voice ${idx + 1}`,
+					v.lang || "en-US",
+				),
+				default: !!v.default,
+			}));
+			const englishVoices = mapped.filter((v) =>
+				v.lang.toLowerCase().startsWith("en"),
+			);
+			return englishVoices.length > 0 ? englishVoices : mapped;
+		}
+
+		// Web: stable reference to the voiceschanged handler so we can remove it on cleanup.
+		let voicesChangedHandler: (() => void) | null = null;
+
 		async function loadVoices() {
 			try {
 				if (Capacitor.isNativePlatform()) {
-					const res = await TextToSpeech.getSupportedVoices();
-					if (!isMounted) return;
-					const rawVoices = res?.voices || [];
-					const mapped: TtsVoiceOption[] = rawVoices.map((v, idx) => ({
-						id: v.voiceURI || v.name || `native-voice-${idx}`,
-						nativeIndex: idx,
-						name: v.name || `Voice ${idx + 1}`,
-						lang: v.lang || "en-US",
-						displayName: getVoiceDisplayName(
-							v.name || `Voice ${idx + 1}`,
-							v.lang || "en-US",
-						),
-						default: !!v.default,
-					}));
+					// The Android TTS engine initialises asynchronously via onInit().
+					// getSupportedVoices() returns empty/null if called before onInit fires.
+					// We try immediately, then poll with back-off.
+					const NATIVE_DELAYS = [0, 250, 500, 1000, 1500, 2500];
 
-					const englishVoices = mapped.filter((v) =>
-						v.lang.toLowerCase().startsWith("en"),
-					);
-					const voiceList = englishVoices.length > 0 ? englishVoices : mapped;
-					setVoices(voiceList);
-					voicesRef.current = voiceList;
+					for (const delay of NATIVE_DELAYS) {
+						if (delay > 0) {
+							await new Promise<void>((res) => setTimeout(res, delay));
+						}
+						if (!isMounted) return;
 
-					const savedId = localStorage.getItem("bible_reader_tts_voice_id");
-					let chosen = voiceList.find((v) => v.id === savedId);
-					if (!chosen) {
-						chosen = voiceList.find((v) => v.default) || voiceList[0] || null;
-					}
-					if (chosen) {
-						setSelectedVoiceId(chosen.id);
-						selectedVoiceRef.current = chosen;
+						try {
+							const res = await TextToSpeech.getSupportedVoices();
+							if (!isMounted) return;
+
+							const rawVoices = res?.voices || [];
+							if (rawVoices.length === 0) continue;
+
+							const mapped: TtsVoiceOption[] = rawVoices.map((v, idx) => ({
+								id: v.voiceURI || v.name || `native-voice-${idx}`,
+								nativeIndex: idx,
+								name: v.name || `Voice ${idx + 1}`,
+								lang: v.lang || "en-US",
+								displayName: getVoiceDisplayName(
+									v.voiceURI || v.name || `Voice ${idx + 1}`,
+									v.lang || "en-US",
+								),
+								default: !!v.default,
+							}));
+							const englishVoices = mapped.filter((v) =>
+								v.lang.toLowerCase().startsWith("en"),
+							);
+							const candidateList =
+								englishVoices.length > 0 ? englishVoices : mapped;
+
+							applyVoiceList(candidateList);
+							break;
+						} catch {
+							// Android TTS engine may still be initialising
+						}
 					}
 				} else if (
 					typeof window !== "undefined" &&
 					"speechSynthesis" in window
 				) {
-					const updateWebVoices = () => {
+					let committed = false;
+
+					const handleVoicesChanged = () => {
+						if (committed || !isMounted) return;
 						const rawVoices = window.speechSynthesis.getVoices() || [];
-						if (!rawVoices.length || !isMounted) return;
+						if (!rawVoices.length) return;
+						committed = true;
 						webVoicesRef.current = rawVoices;
-
-						const mapped: TtsVoiceOption[] = rawVoices.map((v, idx) => ({
-							id: v.voiceURI || v.name || `web-voice-${idx}`,
-							nativeIndex: idx,
-							name: v.name || `Voice ${idx + 1}`,
-							lang: v.lang || "en-US",
-							displayName: getVoiceDisplayName(
-								v.name || `Voice ${idx + 1}`,
-								v.lang || "en-US",
-							),
-							default: !!v.default,
-						}));
-
-						const englishVoices = mapped.filter((v) =>
-							v.lang.toLowerCase().startsWith("en"),
-						);
-						const voiceList = englishVoices.length > 0 ? englishVoices : mapped;
-						setVoices(voiceList);
-						voicesRef.current = voiceList;
-
-						const savedId = localStorage.getItem("bible_reader_tts_voice_id");
-						let chosen = voiceList.find((v) => v.id === savedId);
-						if (!chosen) {
-							chosen = voiceList.find((v) => v.default) || voiceList[0] || null;
-						}
-						if (chosen) {
-							setSelectedVoiceId(chosen.id);
-							selectedVoiceRef.current = chosen;
-						}
+						applyVoiceList(mapAndFilterWebVoices(rawVoices));
 					};
+					voicesChangedHandler = handleVoicesChanged;
 
-					updateWebVoices();
-					window.speechSynthesis.onvoiceschanged = updateWebVoices;
+					// Strategy 1 — synchronous
+					const syncVoices = window.speechSynthesis.getVoices() || [];
+					if (syncVoices.length > 0) {
+						committed = true;
+						webVoicesRef.current = syncVoices;
+						applyVoiceList(mapAndFilterWebVoices(syncVoices));
+					} else {
+						// Strategy 2 — event-based (both property assignment and addEventListener)
+						window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
+						try {
+							window.speechSynthesis.addEventListener(
+								"voiceschanged",
+								handleVoicesChanged,
+							);
+						} catch {
+							// Not all environments support addEventListener on speechSynthesis
+						}
+
+						// Strategy 3 — polling (100 ms → 300 ms → 700 ms → 1.5 s → 3 s)
+						const WEB_DELAYS = [100, 300, 700, 1500, 3000];
+						for (const delay of WEB_DELAYS) {
+							await new Promise<void>((res) => setTimeout(res, delay));
+							if (!isMounted || committed) return;
+							const polled = window.speechSynthesis.getVoices() || [];
+							if (polled.length > 0) {
+								committed = true;
+								webVoicesRef.current = polled;
+								applyVoiceList(mapAndFilterWebVoices(polled));
+								return;
+							}
+						}
+					}
 				}
 			} catch {
-				// Ignore voice loading errors
+				// Errors caught cleanly; default voice remains available
 			}
 		}
 
@@ -245,6 +312,16 @@ export function usePassageAudio(
 			isMounted = false;
 			if (typeof window !== "undefined" && "speechSynthesis" in window) {
 				window.speechSynthesis.onvoiceschanged = null;
+				if (voicesChangedHandler) {
+					try {
+						window.speechSynthesis.removeEventListener(
+							"voiceschanged",
+							voicesChangedHandler,
+						);
+					} catch {
+						// Ignore
+					}
+				}
 			}
 		};
 	}, []);
@@ -331,7 +408,10 @@ export function usePassageAudio(
 						text,
 						rate,
 						lang: currentVoice?.lang || "en-US",
-						voice: currentVoice ? currentVoice.nativeIndex : undefined,
+						voice:
+							currentVoice && currentVoice.nativeIndex >= 0
+								? currentVoice.nativeIndex
+								: undefined,
 						category: "playback",
 					})
 						.then(() => resolve(true))
@@ -344,7 +424,7 @@ export function usePassageAudio(
 					const utterance = new SpeechSynthesisUtterance(text);
 					utterance.rate = Math.max(0.5, Math.min(2.5, rate));
 					utterance.pitch = 1.0;
-					if (currentVoice) {
+					if (currentVoice && currentVoice.id !== "default") {
 						utterance.lang = currentVoice.lang || "en-US";
 						const matchingVoice = webVoicesRef.current.find(
 							(v) =>

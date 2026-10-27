@@ -93,7 +93,7 @@ export const AudioPlayerControls: React.FC<AudioPlayerControlsProps> = ({
 
 				{/* Options: Voice & Speed Selectors */}
 				<div className="audio-player-options">
-					{/* Voice Selector — always rendered; shows placeholder while voices load */}
+					{/* Voice Selector */}
 					<div
 						className="audio-voice-group"
 						title="Select voice for audio reading"
@@ -102,10 +102,9 @@ export const AudioPlayerControls: React.FC<AudioPlayerControlsProps> = ({
 						<span className="audio-voice-label">Voice:</span>
 						<select
 							className="audio-voice-select"
-							value={audio.selectedVoiceId || ""}
+							value={audio.selectedVoiceId || "default"}
 							onChange={(e) => audio.setVoice(e.target.value)}
 							aria-label="Select audio reader voice"
-							disabled={!audio.voices || audio.voices.length === 0}
 						>
 							{audio.voices && audio.voices.length > 0 ? (
 								audio.voices.map((v) => (
@@ -114,7 +113,7 @@ export const AudioPlayerControls: React.FC<AudioPlayerControlsProps> = ({
 									</option>
 								))
 							) : (
-								<option value="">Loading voices…</option>
+								<option value="default">System Default</option>
 							)}
 						</select>
 					</div>

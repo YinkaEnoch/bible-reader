@@ -188,16 +188,15 @@ export const AudioDrawer: React.FC<AudioDrawerProps> = ({
 
 					{/* Voice & Speed options */}
 					<div className="audio-drawer-options">
-						{/* Voice Selector — always rendered; shows placeholder while voices load */}
+						{/* Voice Selector */}
 						<div className="audio-voice-group" title="Select reading voice">
 							<Speech size={13} color="var(--accent-gold)" />
 							<span className="audio-voice-label">Voice:</span>
 							<select
 								className="audio-voice-select"
-								value={audio.selectedVoiceId || ""}
+								value={audio.selectedVoiceId || "default"}
 								onChange={(e) => audio.setVoice(e.target.value)}
 								aria-label="Select audio reader voice"
-								disabled={!audio.voices || audio.voices.length === 0}
 							>
 								{audio.voices && audio.voices.length > 0 ? (
 									audio.voices.map((v) => (
@@ -206,7 +205,7 @@ export const AudioDrawer: React.FC<AudioDrawerProps> = ({
 										</option>
 									))
 								) : (
-									<option value="">Loading voices…</option>
+									<option value="default">System Default</option>
 								)}
 							</select>
 						</div>
