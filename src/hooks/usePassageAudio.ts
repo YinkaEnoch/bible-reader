@@ -39,6 +39,8 @@ export interface UsePassageAudioReturn {
 	skipToVerse: (index: number) => void;
 	prevVerse: () => void;
 	nextVerse: () => void;
+	/** The passage currently loaded into the hook (may differ from what ReadingView shows). */
+	activePassage: Passage | null | undefined;
 }
 
 function getVoiceDisplayName(name: string, lang: string): string {
@@ -281,6 +283,38 @@ export function usePassageAudio(
 		}
 	}, []);
 
+	// Warm up the Web Speech engine so the first real utterance has no cold-start delay.
+	// Fires a silent (zero-length) utterance immediately on user interaction and cancels
+	// it right away. This forces the browser to initialise the TTS engine eagerly.
+	const warmUpSpeechEngine = useCallback(() => {
+		if (
+			Capacitor.isNativePlatform() ||
+			typeof window === "undefined" ||
+			!("speechSynthesis" in window)
+		)
+			return;
+
+		try {
+			// Cancel any lingering utterance first
+			window.speechSynthesis.cancel();
+			// A space-only utterance is the minimal text that passes browser validation
+			const warmUp = new SpeechSynthesisUtterance(" ");
+			warmUp.volume = 0;
+			warmUp.rate = 16; // speak as fast as possible so it finishes instantly
+			// Cancel it the moment it starts — we only need the engine to init
+			warmUp.onstart = () => {
+				try {
+					window.speechSynthesis.cancel();
+				} catch {
+					// ignore
+				}
+			};
+			window.speechSynthesis.speak(warmUp);
+		} catch {
+			// Ignore — warm-up is best-effort
+		}
+	}, []);
+
 	// Low-level speak of a single text string
 	const speakTextPromise = useCallback(
 		(text: string, rate: number): Promise<boolean> => {
@@ -498,9 +532,12 @@ export function usePassageAudio(
 		(startIdx?: number) => {
 			const idx =
 				startIdx !== undefined ? startIdx : currentVerseIndexRef.current;
+			// Warm up the Web Speech engine before starting the loop to eliminate
+			// the cold-start delay on the first spoken utterance.
+			warmUpSpeechEngine();
 			startPlaybackLoop(idx);
 		},
-		[startPlaybackLoop],
+		[startPlaybackLoop, warmUpSpeechEngine],
 	);
 
 	// Toggle play/pause
@@ -508,9 +545,11 @@ export function usePassageAudio(
 		if (playbackState === "playing") {
 			pause();
 		} else {
+			// Warm up engine on resume too so there's no gap after a pause
+			warmUpSpeechEngine();
 			play(currentVerseIndexRef.current);
 		}
-	}, [playbackState, pause, play]);
+	}, [playbackState, pause, play, warmUpSpeechEngine]);
 
 	// Restart from verse 1
 	const restart = useCallback(() => {
@@ -599,16 +638,10 @@ export function usePassageAudio(
 		clearMediaSession,
 	]);
 
-	// Cleanup on unmount
-	useEffect(() => {
-		const sessionRef = sessionIdRef;
-		return () => {
-			sessionRef.current++;
-			stopSpeechEngine();
-			stopBackgroundAudioSession();
-			clearMediaSession();
-		};
-	}, [stopSpeechEngine, clearMediaSession]);
+	// NOTE: Intentionally no cleanup on unmount so that audio continues playing
+	// when the user navigates away from ReadingView. The caller (App.tsx) is
+	// responsible for calling stop() when it wants to tear down playback
+	// explicitly (e.g. navigating to a different day).
 
 	const currentVerseNumber =
 		passage?.versesText && passage.versesText[currentVerseIndex]
@@ -640,5 +673,6 @@ export function usePassageAudio(
 		skipToVerse,
 		prevVerse,
 		nextVerse,
+		activePassage: passage,
 	};
 }

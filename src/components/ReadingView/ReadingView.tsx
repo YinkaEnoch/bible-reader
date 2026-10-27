@@ -26,7 +26,7 @@ import type {
 	BibleVersion,
 } from "../../types";
 import { formatFullDate, formatDateKey } from "../../lib/dateUtils";
-import { usePassageAudio } from "../../hooks/usePassageAudio";
+import type { UsePassageAudioReturn } from "../../hooks/usePassageAudio";
 import { AudioPlayerControls } from "../AudioPlayer/AudioPlayerControls";
 
 interface ReadingViewProps {
@@ -43,6 +43,10 @@ interface ReadingViewProps {
 	isLoadingVerses?: boolean;
 	isPassageRead?: (dateStr: string, passageIndex: number) => boolean;
 	onTogglePassageRead?: (dateStr: string, passageIndex: number) => void;
+	/** Audio hook instance lifted from App-level so playback persists across views. */
+	audio: UsePassageAudioReturn;
+	/** Notify the parent that the active passage index changed so it can update the audio hook's passage. */
+	onPassageIndexChange?: (index: number) => void;
 }
 
 export const ReadingView: React.FC<ReadingViewProps> = ({
@@ -59,6 +63,8 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 	isLoadingVerses = false,
 	isPassageRead,
 	onTogglePassageRead,
+	audio,
+	onPassageIndexChange,
 }) => {
 	const [activePassageIndex, setActivePassageIndex] =
 		useState<number>(initialPassageIndex);
@@ -85,8 +91,10 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 		? isPassageRead(selectedDateStr, safeIndex)
 		: false;
 
-	// Enhanced passage audio reader
-	const audio = usePassageAudio(currentPassage, bibleVersion);
+	// Inform parent when active passage changes so it can update the audio passage
+	useEffect(() => {
+		onPassageIndexChange?.(safeIndex);
+	}, [safeIndex, onPassageIndexChange]);
 
 	// Smoothly scroll active spoken verse into viewport
 	useEffect(() => {
@@ -234,7 +242,7 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 			<div className="reader-nav-bar">
 				<button
 					onClick={() => {
-						audio.stop();
+						// Do NOT stop audio — let it continue playing in the background drawer
 						onBackToCalendar?.();
 					}}
 					className="btn-secondary"

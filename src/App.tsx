@@ -5,10 +5,12 @@ import { useReadings } from "./hooks/useReadings";
 import { useBibleVersion } from "./hooks/useBibleVersion";
 import { useAndroidBackButton } from "./hooks/useAndroidBackButton";
 import { useRandomScripture } from "./hooks/useRandomScripture";
+import { usePassageAudio } from "./hooks/usePassageAudio";
 import { Navbar } from "./components/Navbar/Navbar";
 import { CalendarView } from "./components/Calendar/CalendarView";
 import { ReadingView } from "./components/ReadingView/ReadingView";
 import { AboutModal, type AboutTab } from "./components/About/AboutModal";
+import { AudioDrawer } from "./components/AudioPlayer/AudioDrawer";
 import type { PaperTheme } from "./types";
 
 export function App() {
@@ -42,6 +44,18 @@ export function App() {
   const [aboutModalOpen, setAboutModalOpen] = useState<boolean>(false);
   const [aboutModalTab, setAboutModalTab] = useState<AboutTab>("about");
 
+  // Audio passage index tracked at app level so audio continues when navigating back to calendar
+  const [audioPassageIndex, setAudioPassageIndex] = useState<number>(0);
+
+  // Derive the passage currently loaded into the audio engine from the app-level index
+  const audioPassage =
+    currentReadings.length > 0
+      ? currentReadings[Math.min(audioPassageIndex, currentReadings.length - 1)]
+      : null;
+
+  // App-level audio instance — persists across view changes
+  const audio = usePassageAudio(audioPassage ?? undefined, bibleVersion);
+
   const handleOpenAbout = (tab: AboutTab = "about") => {
     setAboutModalTab(tab);
     setAboutModalOpen(true);
@@ -65,6 +79,8 @@ export function App() {
 
   const handleOpenReadingView = (passageIndex: number = 0) => {
     setSelectedPassageIndex(passageIndex);
+    // Sync audio passage index so the audio hook targets the right passage
+    setAudioPassageIndex(passageIndex);
     setActiveView("reading");
     window.scrollTo({ top: 0, behavior: "instant" });
   };
@@ -111,7 +127,8 @@ export function App() {
         className="app-viewport"
         style={{
           paddingTop: "1.25rem",
-          paddingBottom: "3.5rem",
+          // Extra bottom padding when audio drawer is visible so content isn't obscured
+          paddingBottom: !audio.isStopped && audioPassage ? "7rem" : "3.5rem",
           display: "flex",
           flexDirection: "column",
           gap: "1.5rem",
@@ -205,15 +222,29 @@ export function App() {
             bibleVersion={bibleVersion}
             onSelectBibleVersion={setBibleVersion}
             onBackToCalendar={() => setActiveView("calendar")}
-            onPrevDay={goToPrevDay}
-            onNextDay={goToNextDay}
+            onPrevDay={() => { audio.stop(); goToPrevDay(); }}
+            onNextDay={() => { audio.stop(); goToNextDay(); }}
             initialPassageIndex={selectedPassageIndex}
             isLoadingVerses={isLoadingVerses}
             isPassageRead={isPassageRead}
             onTogglePassageRead={togglePassageRead}
+            audio={audio}
+            onPassageIndexChange={setAudioPassageIndex}
           />
         )}
       </main>
+
+      {/* Global Audio Drawer — persists on all views when audio is playing or paused.
+           On the calendar view it acts as the primary mini-player.
+           On the reading view it supplements AudioPlayerControls and gives the user
+           quick access to controls no matter which passage they are browsing. */}
+      {audioPassage && (
+        <AudioDrawer
+          audio={audio}
+          bibleVersion={bibleVersion}
+          onOpenReader={() => handleOpenReadingView(audioPassageIndex)}
+        />
+      )}
 
       {/* About, Privacy & Credits Modal */}
       <AboutModal

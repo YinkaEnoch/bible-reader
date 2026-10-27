@@ -1763,3 +1763,277 @@ html.dark .passage-tab-btn.active .passage-tab-num,
 		padding: 0.45rem;
 	}
 }
+
+
+/* ============================================================
+   Audio Drawer — persistent mini/expanded player shown at the
+   bottom of the screen when audio is active in the background.
+   ============================================================ */
+
+.audio-drawer {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	z-index: 60;
+	background-color: var(--bg-secondary);
+	border-top: 1px solid var(--border-color);
+	box-shadow: 0 -4px 24px -4px rgba(0, 0, 0, 0.22);
+	/* Respect Android / iOS home indicator */
+	padding-bottom: env(safe-area-inset-bottom, 0px);
+	transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Gold accent ring around the drawer when actively playing */
+.audio-drawer--playing {
+	border-top-color: var(--accent-gold);
+}
+
+/* Thin animated progress stripe at the very top */
+.audio-drawer-progress-stripe {
+	height: 3px;
+	width: 100%;
+	background-color: var(--border-subtle);
+	overflow: hidden;
+}
+
+.audio-drawer-progress-stripe-fill {
+	height: 100%;
+	background: linear-gradient(90deg, var(--accent-gold), #f59e0b);
+	transition: width 0.3s ease;
+}
+
+/* ---- Mini bar (always visible) ---- */
+.audio-drawer-mini {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	padding: 0.55rem 1rem;
+	min-height: 58px;
+}
+
+.audio-drawer-status-icon {
+	width: 34px;
+	height: 34px;
+	border-radius: var(--radius-full);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: var(--bg-tertiary);
+	border: 1px solid var(--border-color);
+	color: var(--text-muted);
+	flex-shrink: 0;
+	transition: all 0.2s ease;
+}
+
+.audio-drawer-status-icon--playing {
+	background-color: var(--accent-gold);
+	color: #ffffff;
+	border-color: var(--accent-gold);
+	box-shadow: var(--shadow-gold);
+}
+
+/* Passage info button (tapping navigates to reader) */
+.audio-drawer-passage-info {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.1rem;
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	padding: 0;
+	text-align: left;
+}
+
+.audio-drawer-passage-title {
+	font-size: 0.88rem;
+	font-weight: 700;
+	color: var(--text-primary);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 100%;
+}
+
+.audio-drawer-passage-meta {
+	font-size: 0.7rem;
+	color: var(--text-muted);
+	white-space: nowrap;
+}
+
+.audio-drawer--playing .audio-drawer-passage-meta {
+	color: var(--accent-gold);
+	font-weight: 600;
+}
+
+/* Quick playback controls in the mini bar */
+.audio-drawer-quick-controls {
+	display: flex;
+	align-items: center;
+	gap: 0.3rem;
+	flex-shrink: 0;
+}
+
+.audio-drawer-ctrl-btn {
+	width: 34px;
+	height: 34px;
+	border-radius: var(--radius-full);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: var(--bg-tertiary);
+	border: 1px solid var(--border-color);
+	color: var(--text-primary);
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.audio-drawer-ctrl-btn:hover:not(:disabled) {
+	background-color: var(--bg-hover);
+	color: var(--accent-gold);
+	border-color: var(--accent-gold);
+}
+
+.audio-drawer-play-btn {
+	width: 40px;
+	height: 40px;
+	border-radius: var(--radius-full);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: linear-gradient(135deg, var(--accent-gold), #d97706);
+	color: #ffffff;
+	border: none;
+	cursor: pointer;
+	box-shadow: var(--shadow-gold);
+	transition: transform 0.15s ease, box-shadow 0.15s ease;
+	flex-shrink: 0;
+}
+
+.audio-drawer-play-btn:hover {
+	transform: scale(1.06);
+	box-shadow: 0 6px 20px -2px rgba(196, 148, 41, 0.55);
+}
+
+/* Expand / collapse chevron button */
+.audio-drawer-expand-btn {
+	width: 30px;
+	height: 30px;
+	border-radius: var(--radius-full);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: transparent;
+	border: 1px solid var(--border-subtle);
+	color: var(--text-muted);
+	cursor: pointer;
+	flex-shrink: 0;
+	transition: all 0.15s ease;
+}
+
+.audio-drawer-expand-btn:hover {
+	border-color: var(--accent-gold);
+	color: var(--accent-gold);
+}
+
+/* ---- Expanded panel ---- */
+.audio-drawer-expanded-panel {
+	padding: 0.65rem 1rem 0.8rem;
+	border-top: 1px solid var(--border-subtle);
+	display: flex;
+	flex-direction: column;
+	gap: 0.65rem;
+	animation: drawerExpand 0.2s ease-out;
+}
+
+@keyframes drawerExpand {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* Active verse snippet inside expanded panel */
+.audio-drawer-verse-preview {
+	background-color: var(--bg-tertiary);
+	border-radius: var(--radius-md);
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--border-subtle);
+	font-size: 0.8rem;
+	line-height: 1.5;
+	color: var(--text-secondary);
+	display: flex;
+	gap: 0.4rem;
+	font-style: italic;
+	animation: fadeIn 0.2s ease-in;
+}
+
+.audio-drawer-verse-ref {
+	font-weight: 800;
+	color: var(--accent-gold);
+	font-style: normal;
+	flex-shrink: 0;
+}
+
+.audio-drawer-verse-text {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+}
+
+/* Voice & speed row inside expanded panel */
+.audio-drawer-options {
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
+	flex-wrap: wrap;
+}
+
+/* Secondary controls row in expanded panel */
+.audio-drawer-secondary-controls {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	flex-wrap: wrap;
+}
+
+.audio-drawer-open-reader-btn {
+	margin-left: auto;
+	padding: 0.35rem 0.7rem;
+	font-size: 0.75rem;
+}
+
+/* ---- Responsive tweaks ---- */
+@media (max-width: 640px) {
+	.audio-drawer-mini {
+		padding: 0.45rem 0.75rem;
+		gap: 0.45rem;
+	}
+
+	/* Hide skip-back and skip-forward on very small screens to save space */
+	.audio-drawer-ctrl-btn:first-child,
+	.audio-drawer-ctrl-btn:nth-child(3) {
+		display: none;
+	}
+
+	.audio-drawer-expanded-panel {
+		padding: 0.55rem 0.75rem 0.7rem;
+	}
+
+	.audio-drawer-secondary-controls {
+		gap: 0.3rem;
+	}
+
+	.audio-drawer-open-reader-btn {
+		margin-left: 0;
+	}
+}

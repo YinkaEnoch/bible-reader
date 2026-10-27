@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bible-reader-v0.4.3';
+const CACHE_NAME = 'bible-reader-v0.4.4';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
