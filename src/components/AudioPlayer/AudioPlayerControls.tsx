@@ -11,6 +11,7 @@ import {
 	Volume2,
 	VolumeX,
 	Radio,
+	Speech,
 } from "lucide-react";
 import type { Passage, BibleVersion } from "../../types";
 import type { UsePassageAudioReturn } from "../../hooks/usePassageAudio";
@@ -90,23 +91,49 @@ export const AudioPlayerControls: React.FC<AudioPlayerControlsProps> = ({
 					</div>
 				</div>
 
-				{/* Speed Selector */}
-				<div
-					className="audio-speed-group"
-					title="Audio reading speed options"
-				>
-					<span className="audio-speed-label">Speed:</span>
-					<div className="audio-speed-pills">
-						{SPEED_OPTIONS.map((s) => (
-							<button
-								key={s}
-								onClick={() => audio.setSpeed(s)}
-								className={`audio-speed-pill ${audio.speed === s ? "active" : ""}`}
-								title={`Playback speed ${s}x`}
+				{/* Options: Voice & Speed Selectors */}
+				<div className="audio-player-options">
+					{/* Voice Selector */}
+					{audio.voices && audio.voices.length > 0 && (
+						<div
+							className="audio-voice-group"
+							title="Select voice for audio reading"
+						>
+							<Speech size={13} color="var(--accent-gold)" />
+							<span className="audio-voice-label">Voice:</span>
+							<select
+								className="audio-voice-select"
+								value={audio.selectedVoiceId || ""}
+								onChange={(e) => audio.setVoice(e.target.value)}
+								aria-label="Select audio reader voice"
 							>
-								{s}x
-							</button>
-						))}
+								{audio.voices.map((v) => (
+									<option key={v.id} value={v.id}>
+										{v.displayName}
+									</option>
+								))}
+							</select>
+						</div>
+					)}
+
+					{/* Speed Selector */}
+					<div
+						className="audio-speed-group"
+						title="Audio reading speed options"
+					>
+						<span className="audio-speed-label">Speed:</span>
+						<div className="audio-speed-pills">
+							{SPEED_OPTIONS.map((s) => (
+								<button
+									key={s}
+									onClick={() => audio.setSpeed(s)}
+									className={`audio-speed-pill ${audio.speed === s ? "active" : ""}`}
+									title={`Playback speed ${s}x`}
+								>
+									{s}x
+								</button>
+							))}
+						</div>
 					</div>
 				</div>
 			</div>

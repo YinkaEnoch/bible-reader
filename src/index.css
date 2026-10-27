@@ -1465,6 +1465,57 @@ html.dark .passage-tab-btn.active .passage-tab-num,
 	font-weight: 700;
 }
 
+/* Audio player options: Voice & Speed */
+.audio-player-options {
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
+	flex-wrap: wrap;
+}
+
+.audio-voice-group {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	background-color: var(--bg-secondary);
+	padding: 0.2rem 0.5rem;
+	border-radius: var(--radius-md);
+	border: 1px solid var(--border-color);
+	transition: border-color 0.15s ease;
+}
+
+.audio-voice-group:hover,
+.audio-voice-group:focus-within {
+	border-color: var(--accent-gold);
+}
+
+.audio-voice-label {
+	font-size: 0.7rem;
+	font-weight: 700;
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.audio-voice-select {
+	background: transparent;
+	color: var(--text-primary);
+	border: none;
+	font-size: 0.72rem;
+	font-weight: 600;
+	cursor: pointer;
+	outline: none;
+	max-width: 155px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+.audio-voice-select option {
+	background-color: var(--bg-secondary);
+	color: var(--text-primary);
+}
+
 /* Speed selector */
 .audio-speed-group {
 	display: flex;
@@ -1679,9 +1730,25 @@ html.dark .passage-tab-btn.active .passage-tab-num,
 		gap: 0.5rem;
 	}
 
-	.audio-speed-group {
+	.audio-player-options {
 		width: 100%;
 		justify-content: space-between;
+		gap: 0.5rem;
+	}
+
+	.audio-voice-group {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.audio-voice-select {
+		width: 100%;
+		max-width: none;
+		min-width: 0;
+	}
+
+	.audio-speed-group {
+		justify-content: flex-end;
 	}
 
 	.audio-controls-row {
