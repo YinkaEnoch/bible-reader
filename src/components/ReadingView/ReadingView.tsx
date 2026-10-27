@@ -6,7 +6,6 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	Volume2,
-	VolumeX,
 	Pause,
 	Type,
 	BookOpen,
@@ -396,26 +395,6 @@ export const ReadingView: React.FC<ReadingViewProps> = ({
 						))}
 					</div>
 				</div>
-
-				{audio.isSupported && (
-					<button
-						onClick={audio.togglePlayPause}
-						className="btn-secondary"
-						style={{
-							backgroundColor: audio.isPlaying ? "#f59e0b" : undefined,
-							color: audio.isPlaying ? "#ffffff" : undefined,
-							fontSize: "0.78rem",
-						}}
-						title={
-							audio.isPlaying
-								? "Pause audio reading"
-								: "Listen to audio reading"
-						}
-					>
-						{audio.isPlaying ? <VolumeX size={14} /> : <Volume2 size={14} />}
-						<span>{audio.isPlaying ? "Pause Audio" : "Listen Now"}</span>
-					</button>
-				)}
 			</div>
 
 			{/* Passage Quick-Jump Tabs (when multiple passages for the day) */}
